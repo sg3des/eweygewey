@@ -31,7 +31,7 @@ Requirements
 Differences
 -----------
 
-* Windows replaces with Containers, containers can not move and not have a title, scrollbars(current) not available too.
+* Windows replaced on Containers, containers can not move and not have a title, scrollbars(current) not available too.
 * Containers may create various widgets, widgets placed one by one, if in row not enough space, widget move to new row(in html it`s looks like a *float*).
 * Widget can be have fixed position
 * Smart layout system for positioning containers and widgets 
