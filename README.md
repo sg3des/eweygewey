@@ -1,6 +1,6 @@
 # FizzGUI
 
-FizzGUI is and OpenGL GUI for [Fizzle][fizzle] engine, сonstructed from [EweyGewey][EweyGewey], but heavily reworked. 
+FizzGUI is an OpenGL GUI for [Fizzle][fizzle] engine, сonstructed from [EweyGewey][EweyGewey], but reworked crucially. 
 
 
 UNDER CONSTRUCTION
@@ -31,11 +31,11 @@ Requirements
 Differences
 -----------
 
-* Windows replaced on Containers, containers can not move and not have a title, scrollbars(current) not available too.
-* Containers may create various widgets, widgets placed one by one, if in row not enough space, widget move to new row(in html it`s looks like a *float*).
-* Widget can be have fixed position
-* Smart layout system for positioning containers and widgets 
-* Some widgets may have callbacks(signals) calls on events(ex: press button)
+* Windows were replaced on Containers, containers can not be moved and do not have a title, scrollbars(current) are not available too.
+* Containers may create various widgets, widgets are placed one by one, if there is no enough space in row, widget moves to the new row(in html it looks like a *float*).
+* Widget may have a fixed position
+* Smart layout system for positioning of containers and widgets 
+* Some widgets may have callbacks(signals) calling on appropriated events(ex: press button)
 
 
 Current Features
@@ -74,7 +74,7 @@ Original package [EweyGewey][EweyGewey] is released under the BSD license. See t
 [golang]: https://golang.org/
 [fizzle]: https://github.com/tbogdala/fizzle
 [glfw]: https://github.com/go-gl/glfw
-[mgl]: https://github.com/go-gl/mathgl
+[mgl32]: https://github.com/go-gl/mathgl
 [freetype]: https://github.com/golang/freetype
 
 
