@@ -80,9 +80,10 @@ func updateWindowLayout() {
 func DelContainer(ptr *Container) {
 	for i, c := range containers {
 		if c == ptr {
-			for i := range c.Widgets {
-				c.Widgets[i] = nil
+			for w := range c.Widgets {
+				c.Widgets[w] = nil
 			}
+			ptr = nil
 			containers[i] = nil
 			containers = append(containers[:i], containers[i+1:]...)
 			return
