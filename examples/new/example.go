@@ -137,7 +137,7 @@ func main() {
 	dad.NewItem("item1", "30%", "30%", "10%", "10%", greenPotion, nil)
 
 	//start render
-	render()
+	renderLoop()
 }
 
 var inp string
@@ -186,12 +186,6 @@ func initGraphics(title string, w int, h int) (*glfw.Window, graphics.GraphicsPr
 	}
 	fizzle.SetGraphics(gfx)
 
-	window.SetKeyCallback(keyCallback)
-
-	return window, gfx
-}
-
-func render() {
 	// set some additional OpenGL flags
 	gfx.BlendEquation(graphics.FUNC_ADD)
 	gfx.BlendFunc(graphics.SRC_ALPHA, graphics.ONE_MINUS_SRC_ALPHA)
@@ -199,6 +193,12 @@ func render() {
 	gfx.Enable(graphics.TEXTURE_2D)
 	gfx.Enable(graphics.CULL_FACE)
 
+	window.SetKeyCallback(keyCallback)
+
+	return window, gfx
+}
+
+func renderLoop() {
 	for !window.ShouldClose() {
 		gfx.Viewport(0, 0, width, height)
 		gfx.ClearColor(0.4, 0.4, 0.4, 1)
@@ -206,6 +206,7 @@ func render() {
 
 		// draw the user interface
 		fizzgui.Construct()
+
 		// draw the screen and get any input
 		window.SwapBuffers()
 		glfw.PollEvents()
