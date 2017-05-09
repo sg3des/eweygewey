@@ -17,18 +17,6 @@ import (
 	"github.com/tbogdala/fizzle/graphicsprovider/opengl"
 )
 
-const (
-	fontScale    = 18
-	fontFilepath = "../assets/Roboto-Bold.ttf"
-
-	imgPotions     = "../assets/potions.png"
-	imgPotionRed   = "../assets/potion_red.png"
-	imgPotionBlack = "../assets/potion_black.png"
-
-	width  = 800
-	height = 600
-)
-
 var (
 	window *glfw.Window
 	gfx    graphics.GraphicsProvider
@@ -48,14 +36,14 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 func main() {
 	log.SetFlags(log.Lshortfile)
 
-	window, gfx = initGraphics("fizzgui-example", width, height)
+	window, gfx = initGraphics("fizzgui-example", 800, 600)
 
 	if err := fizzgui.Init(window, gfx); err != nil {
 		log.Fatalln("Failed initialize fizzgui, reason:", err)
 	}
 
 	// load a font
-	_, err := fizzgui.NewFont("Default", fontFilepath, fontScale, fizzgui.FontGlyphs)
+	_, err := fizzgui.NewFont("Default", "../assets/Roboto-Bold.ttf", 18, fizzgui.FontGlyphs)
 	if err != nil {
 		log.Fatalln("Failed to load the font file, reason:", err)
 	}
@@ -200,7 +188,8 @@ func initGraphics(title string, w int, h int) (*glfw.Window, graphics.GraphicsPr
 
 func renderLoop() {
 	for !window.ShouldClose() {
-		gfx.Viewport(0, 0, width, height)
+		w, h := window.GetFramebufferSize()
+		gfx.Viewport(0, 0, int32(w), int32(h))
 		gfx.ClearColor(0.4, 0.4, 0.4, 1)
 		gfx.Clear(graphics.COLOR_BUFFER_BIT | graphics.DEPTH_BUFFER_BIT)
 

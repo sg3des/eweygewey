@@ -253,8 +253,8 @@ func render() {
 	const minZDepth = -100.0
 	const maxZDepth = 100.0
 
-	// gfx.Disable(graphics.DEPTH_TEST)
-	// gfx.Enable(graphics.SCISSOR_TEST)
+	gfx.Disable(graphics.DEPTH_TEST)
+	gfx.Enable(graphics.SCISSOR_TEST)
 
 	// for now, loop through all of the windows and copy all of the data into the manager's buffer
 	// FIXME: this could be buffered straight from the cmdList
@@ -342,8 +342,8 @@ func render() {
 	}
 
 	gfx.BindVertexArray(0)
-	// gfx.Disable(graphics.SCISSOR_TEST)
-	// gfx.Enable(graphics.DEPTH_TEST)
+	gfx.Disable(graphics.SCISSOR_TEST)
+	gfx.Enable(graphics.DEPTH_TEST)
 }
 
 func compileShader(vertShader, fragShader string) (graphics.Program, error) {
