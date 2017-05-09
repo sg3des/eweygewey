@@ -151,7 +151,7 @@ func (c *Container) draw(bry float32) {
 
 	r := c.Layout.GetBackgroundRect()
 	if c.AutoAdjustHeight {
-		r.BRY = bry - c.Layout.Margin.B
+		r.BRY = bry - c.Layout.Padding.B
 	}
 
 	// build the background of the window
