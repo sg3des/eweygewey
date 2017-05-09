@@ -77,15 +77,19 @@ func updateWindowLayout() {
 	wndLayout.H = float32(h)
 }
 
-func DelContainer(id string) {
+func DelContainer(ptr *Container) {
 	for i, c := range containers {
-		if c.ID == id {
+		if c == ptr {
+			for i := range c.Widgets {
+				c.Widgets[i] = nil
+			}
 			containers[i] = nil
 			containers = append(containers[:i], containers[i+1:]...)
 			return
 		}
 	}
-	log.Printf("WARNING: container by id:'%s' not found", id)
+
+	log.Println("WARNING: container not found")
 }
 
 // GetContainer returns a container based on the id string passed in
@@ -167,8 +171,12 @@ C:
 	}*/
 
 	// loop through all of the windows and tell them to self-construct.
+	log.Println(len(containers))
 	for _, c := range containers {
-		c.construct()
+		log.Println(c == nil)
+		if c != nil {
+			c.construct()
+		}
 	}
 
 	render()

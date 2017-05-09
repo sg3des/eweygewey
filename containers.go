@@ -64,7 +64,7 @@ func (c *Container) addWidget(wgt *Widget) {
 
 //Close function remove this window from window slice
 func (c *Container) Close() {
-	DelContainer(c.ID)
+	DelContainer(c)
 }
 
 // construct should be call each frame
