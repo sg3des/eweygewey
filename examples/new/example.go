@@ -14,7 +14,7 @@ import (
 
 	fizzle "github.com/tbogdala/fizzle"
 	graphics "github.com/tbogdala/fizzle/graphicsprovider"
-	gl "github.com/tbogdala/fizzle/graphicsprovider/opengl"
+	"github.com/tbogdala/fizzle/graphicsprovider/opengl"
 )
 
 const (
@@ -24,21 +24,14 @@ const (
 	imgPotions     = "../assets/potions.png"
 	imgPotionRed   = "../assets/potion_red.png"
 	imgPotionBlack = "../assets/potion_black.png"
-)
 
-const width = 800
-const height = 600
+	width  = 800
+	height = 600
+)
 
 var (
 	window *glfw.Window
 	gfx    graphics.GraphicsProvider
-
-	thisFrame        time.Time
-	lastFrame        time.Time
-	frameCounterTime time.Time
-	frameCounter     int
-	lastCalcFPS      int
-	frameDelta       float64
 )
 
 // GLFW event handling must run on the main OS thread
@@ -50,24 +43,6 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	if key == glfw.KeyEscape && action == glfw.Press {
 		w.SetShouldClose(true)
 	}
-}
-
-func renderFrame(frameDelta float64) {
-	// calculate the frame timing and FPS
-	if thisFrame.Sub(frameCounterTime).Seconds() > 1.0 {
-		lastCalcFPS = frameCounter
-		frameCounterTime = thisFrame
-		frameCounter = 0
-	}
-	frameCounter++
-	lastFrame = thisFrame
-
-	gfx.Viewport(0, 0, width, height)
-	gfx.ClearColor(0.4, 0.4, 0.4, 1)
-	gfx.Clear(graphics.COLOR_BUFFER_BIT | graphics.DEPTH_BUFFER_BIT)
-
-	// draw the user interface
-	fizzgui.Construct()
 }
 
 func main() {
@@ -162,7 +137,7 @@ func main() {
 	dad.NewItem("item1", "30%", "30%", "10%", "10%", greenPotion, nil)
 
 	//start render
-	renderLoop()
+	render()
 }
 
 var inp string
@@ -205,27 +180,18 @@ func initGraphics(title string, w int, h int) (*glfw.Window, graphics.GraphicsPr
 	glfw.SwapInterval(1) // if 0 disable v-sync
 
 	// initialize OpenGL
-	gfx, err := gl.InitOpenGL()
+	gfx, err := opengl.InitOpenGL()
 	if err != nil {
 		panic("Failed to initialize OpenGL! " + err.Error())
 	}
 	fizzle.SetGraphics(gfx)
 
 	window.SetKeyCallback(keyCallback)
-	lastFrame = time.Now()
-	frameCounterTime = lastFrame
-	lastCalcFPS = -1
-
-	// setup the OpenGL graphics provider
-	gfx, err = gl.InitOpenGL()
-	if err != nil {
-		log.Panicln("Failed to initialize OpenGL! " + err.Error())
-	}
 
 	return window, gfx
 }
 
-func renderLoop() {
+func render() {
 	// set some additional OpenGL flags
 	gfx.BlendEquation(graphics.FUNC_ADD)
 	gfx.BlendFunc(graphics.SRC_ALPHA, graphics.ONE_MINUS_SRC_ALPHA)
@@ -233,19 +199,15 @@ func renderLoop() {
 	gfx.Enable(graphics.TEXTURE_2D)
 	gfx.Enable(graphics.CULL_FACE)
 
-	// enter the renderloop
-	thisFrame = time.Now()
 	for !window.ShouldClose() {
-		// draw the sample
-		thisFrame = time.Now()
-		frameDelta = thisFrame.Sub(lastFrame).Seconds()
-		renderFrame(frameDelta)
+		gfx.Viewport(0, 0, width, height)
+		gfx.ClearColor(0.4, 0.4, 0.4, 1)
+		gfx.Clear(graphics.COLOR_BUFFER_BIT | graphics.DEPTH_BUFFER_BIT)
 
+		// draw the user interface
+		fizzgui.Construct()
 		// draw the screen and get any input
 		window.SwapBuffers()
 		glfw.PollEvents()
-
-		// update the last render time
-		lastFrame = thisFrame
 	}
 }
