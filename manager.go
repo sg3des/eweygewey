@@ -214,8 +214,10 @@ func bindOpenGLData(view mgl.Mat4) {
 			gfx.Uniform1i(texUniLoc, int32(tex.ID))
 		}
 	}
-	//stupid magic
-	gfx.Uniform1i(texUniLoc+1, int32(len(textures)+1))
+	if len(textures) > 0 {
+		// stupid magic
+		gfx.Uniform1i(texUniLoc+1, int32(len(textures)+1))
+	}
 
 	shaderPosition := gfx.GetAttribLocation(shader, "VERTEX_POSITION")
 	gfx.BindBuffer(graphics.ARRAY_BUFFER, comboVBO)
@@ -247,7 +249,6 @@ func render() {
 	const texIdxOffset = floatSize * 4
 	const colorOffset = floatSize * 5
 	const VBOStride = floatSize * (2 + 2 + 1 + 4) // vert / uv / texIndex / color
-	// gfx := gfx
 
 	// FIXME: move the zdepth definitions elsewhere
 	const minZDepth = -100.0
@@ -347,8 +348,6 @@ func render() {
 }
 
 func compileShader(vertShader, fragShader string) (graphics.Program, error) {
-	// gfx := gfx
-
 	// create the program
 	prog := gfx.CreateProgram()
 

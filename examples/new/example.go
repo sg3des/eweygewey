@@ -60,7 +60,7 @@ func main() {
 
 	//left container
 	left := fizzgui.NewContainer("left-container", "2%", "2%", "48%", "96%")
-	left.AutoAdjustHeight = false
+	left.AutoAdjustHeight = true
 
 	left.NewText("full width text").Layout.SetWidth("100%")
 
@@ -88,7 +88,7 @@ func main() {
 	left.NewCheckbox(&ok, wgtCallback)
 	left.NewText("checkbox")
 
-	left.NewRow()
+	left.NewRow().Layout.SetHeight("20px")
 	btn := left.NewButton("Button", wgtCallback)
 	btn.Layout.SetWidth("300px")
 	btn.Layout.SetHeight("51px")
@@ -113,7 +113,6 @@ func main() {
 
 	//right container
 	right := fizzgui.NewContainer("right-container", "50%", "2%", "48%", "96%")
-	right.AutoAdjustHeight = false
 
 	dad := right.NewDragAndDropGroup("id")
 	dad.NewSlot("slot0", "10%", "10%", "12%", "12%", dadCallback)

@@ -89,11 +89,11 @@ func (c *Container) construct() {
 		cursor.add(w, h)
 	}
 
-	if c.AutoAdjustHeight {
-		c.Layout.h.minValue = cursor.Y
-	}
+	// if c.AutoAdjustHeight {
+	// 	c.Layout.h.minValue = cursor.Y
+	// }
 
-	c.draw(c.Layout.H)
+	c.draw(cursor.Y)
 }
 
 //Cursor provide point to widgets position
@@ -141,7 +141,7 @@ func (cursor *Cursor) NextRow() {
 }
 
 // draw builds the background for the window
-func (c *Container) draw(totalControlHeightDC float32) {
+func (c *Container) draw(bry float32) {
 	var combos []float32
 	var indexes []uint32
 	var fc uint32
@@ -150,6 +150,9 @@ func (c *Container) draw(totalControlHeightDC float32) {
 	cmd := c.GetFirstCmd(0)
 
 	r := c.Layout.GetBackgroundRect()
+	if c.AutoAdjustHeight {
+		r.BRY = bry - c.Layout.Margin.B
+	}
 
 	// build the background of the window
 	combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
