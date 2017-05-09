@@ -1,89 +1,91 @@
-// Copyright 2016, Timothy Bogdala <tdb@animal-machine.com>
-// See the LICENSE file for more details.
+package fizzgui
 
-package eweygewey
-
-const (
-	EweyKeyUnknown = iota
-	EweyKeyWorld1
-	EweyKeyWorld2
-	EweyKeyEscape
-	EweyKeyEnter
-	EweyKeyTab
-	EweyKeyBackspace
-	EweyKeyInsert
-	EweyKeyDelete
-	EweyKeyRight
-	EweyKeyLeft
-	EweyKeyDown
-	EweyKeyUp
-	EweyKeyPageUp
-	EweyKeyPageDown
-	EweyKeyHome
-	EweyKeyEnd
-	EweyKeyCapsLock
-	EweyKeyScrollLock
-	EweyKeyNumLock
-	EweyKeyPrintScreen
-	EweyKeyPause
-	EweyKeyF1
-	EweyKeyF2
-	EweyKeyF3
-	EweyKeyF4
-	EweyKeyF5
-	EweyKeyF6
-	EweyKeyF7
-	EweyKeyF8
-	EweyKeyF9
-	EweyKeyF10
-	EweyKeyF11
-	EweyKeyF12
-	EweyKeyF13
-	EweyKeyF14
-	EweyKeyF15
-	EweyKeyF16
-	EweyKeyF17
-	EweyKeyF18
-	EweyKeyF19
-	EweyKeyF20
-	EweyKeyF21
-	EweyKeyF22
-	EweyKeyF23
-	EweyKeyF24
-	EweyKeyF25
-	EweyKeyLeftShift
-	EweyKeyLeftControl
-	EweyKeyLeftAlt
-	EweyKeyLeftSuper
-	EweyKeyRightShift
-	EweyKeyRightControl
-	EweyKeyRightAlt
-	EweyKeyRightSuper
+import (
+	"github.com/go-gl/glfw/v3.1/glfw"
 )
 
-// KeyPressEvent represents the data associated with a single key-press event
-// from whatever input library is used in conjunction with this package.
-type KeyPressEvent struct {
-	// the key that was hit if it is alpha-numeric or otherwise able to be
-	// stored as a character
-	Rune rune
+var Keys *keyboard
 
-	// if the key was not something that can be stored as a rune, then
-	// use the corresponding key enum value here (e.g. eweyKeyF1)
-	KeyCode int
+type keyboard struct {
+	keys  []KeyEvent
+	runes []rune
 
-	// IsRune indicates if the event for a rune or non-rune key
-	IsRune bool
+	listening bool
 
-	// ShiftDown indicates if the shift key was down at time of key press
-	ShiftDown bool
+	prevKeyCallback      glfw.KeyCallback
+	prevCharModsCallback glfw.CharModsCallback
+}
 
-	// CtrlDown indicates if the ctrl key was down at time of key press
-	CtrlDown bool
+func initKeyboard(window *glfw.Window) {
+	Keys = new(keyboard)
+	Keys.prevKeyCallback = window.SetKeyCallback(Keys.charKeyCallback)
+	Keys.prevCharModsCallback = window.SetCharModsCallback(Keys.charModsCallback)
 
-	// AltDown indicates if the alt key was down at time of key press
-	AltDown bool
+	// glfw.CharCallback
+	// window.SetCharCallback(func(w *glfw.Window, r rune) {
+	// 	log.Println(r)
+	// })
+}
 
-	// SuperDown indicates if the super key was down at time of key press
-	SuperDown bool
+func (kbrd *keyboard) DisableListening() {
+	kbrd.listening = false
+}
+
+func (kbrd *keyboard) GetKeys() (keys []KeyEvent) {
+	kbrd.listening = true
+	keys = kbrd.keys
+	kbrd.keys = kbrd.keys[:0]
+	return
+}
+
+//KeyEvent contains keyCode, rune and pressed key modifiers
+type KeyEvent struct {
+	KeyCode glfw.Key
+
+	Shift bool
+	Ctrl  bool
+	Alt   bool
+	Super bool
+}
+
+func (kbrd *keyboard) charKeyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+
+	if kbrd.listening {
+		if action != glfw.Press && action != glfw.Repeat {
+			return
+		}
+
+		k := KeyEvent{
+			Shift:   mods == glfw.ModShift,
+			Ctrl:    mods == glfw.ModControl,
+			Alt:     mods == glfw.ModAlt,
+			Super:   mods == glfw.ModSuper,
+			KeyCode: key,
+		}
+
+		kbrd.keys = append(kbrd.keys, k)
+	}
+
+	if kbrd.prevKeyCallback != nil {
+		kbrd.prevKeyCallback(w, key, scancode, action, mods)
+	}
+}
+
+func (kbrd *keyboard) GetRunes() (runes []rune) {
+	kbrd.listening = true
+	runes = kbrd.runes
+	kbrd.runes = kbrd.runes[:0]
+	return
+}
+
+func (kbrd *keyboard) charModsCallback(w *glfw.Window, char rune, mods glfw.ModifierKey) {
+
+	if kbrd.listening && char > 0 {
+
+		kbrd.runes = append(kbrd.runes, char)
+	}
+
+	if kbrd.prevCharModsCallback != nil {
+		kbrd.prevCharModsCallback(w, char, mods)
+	}
 }

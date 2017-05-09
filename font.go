@@ -1,7 +1,7 @@
 // Copyright 2015, Timothy Bogdala <tdb@animal-machine.com>
 // See the LICENSE file for more details.
 
-package eweygewey
+package fizzgui
 
 /*
 Based primarily on gltext found at https://github.com/go-gl/gltext
@@ -32,6 +32,8 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+var FontGlyphs = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890., :[]{}\\|<>;\"'~`?/-+_=()*&^%$#@!абвгдеёжзийклмнопрстуфхцчшщьыъэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯ"
+
 // runeData stores information pulled from the freetype parsing of glyphs.
 type runeData struct {
 	imgX, imgY                    int     // offset into the image texture for the top left position of rune
@@ -50,7 +52,6 @@ type Font struct {
 	Glyphs      string
 	GlyphHeight float32
 	GlyphWidth  float32
-	Owner       *Manager
 	locations   map[rune]runeData
 	opts        truetype.Options
 	face        imgfont.Face
@@ -58,7 +59,7 @@ type Font struct {
 
 // newFont takes a fontFilepath and uses the Go freetype library to parse it
 // and render the specified glyphs to a texture that is then buffered into OpenGL.
-func newFont(owner *Manager, fontFilepath string, scaleInt int, glyphs string) (f *Font, e error) {
+func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error) {
 	f = new(Font)
 	scale := fixed.I(scaleInt)
 
@@ -129,7 +130,7 @@ func newFont(owner *Manager, fontFilepath string, scaleInt int, glyphs string) (
 	c.SetSrc(image.White)
 
 	// NOTE: always disabled for now since it causes a stack overflow error
-	//c.SetHinting(imgfont.HintingFull)
+	// c.SetHinting(imgfont.HintingNone)
 
 	var fx, fy int
 	for _, ch := range glyphs {
@@ -182,7 +183,6 @@ func newFont(owner *Manager, fontFilepath string, scaleInt int, glyphs string) (
 	f.TextureSize = fontTexSize
 	f.GlyphWidth = glyphWidth
 	f.GlyphHeight = glyphHeight
-	f.Owner = owner
 	f.Texture = f.loadRGBAToTexture(fontImg.Pix, int32(fontImg.Rect.Max.X))
 
 	return
@@ -190,26 +190,31 @@ func newFont(owner *Manager, fontFilepath string, scaleInt int, glyphs string) (
 
 // Destroy releases the OpenGL texture for the font.
 func (f *Font) Destroy() {
-	f.Owner.gfx.DeleteTexture(f.Texture)
+	gfx.DeleteTexture(f.Texture)
 }
 
 // GetCurrentScale returns the scale value for the font based on the current
 // Manager's resolution vs the resolution the UI was designed for.
 func (f *Font) GetCurrentScale() float32 {
-	_, uiHeight := f.Owner.GetResolution()
-	designHeight := f.Owner.GetDesignHeight()
-	return float32(uiHeight) / float32(designHeight)
+	return 1
+	// 	w, h := window.GetSize()
+	// 	if w > h {
+	// 		return float32(w) / float32(h)
+	// 	}
+	// 	// _, uiHeight := f.Owner.GetResolution()
+	// 	// designHeight := f.Owner.GetDesignHeight()
+	// 	return float32(h) / float32(w)
 }
 
 // GetRenderSize returns the width and height necessary in pixels for the
 // font to display a string. The third return value is the advance height the string.
-func (f *Font) GetRenderSize(msg string) (float32, float32, float32) {
+func (f *Font) GetRenderSize(s string) (float32, float32, float32) {
 	var w, h float32
 
 	// see how much to scale the size based on current resolution vs desgin resolution
 	fontScale := f.GetCurrentScale()
 
-	for _, ch := range msg {
+	for _, ch := range s {
 		bounds, _, _ := f.face.GlyphBounds(ch)
 		glyphDimensions := bounds.Max.Sub(bounds.Min)
 
@@ -223,9 +228,25 @@ func (f *Font) GetRenderSize(msg string) (float32, float32, float32) {
 	}
 
 	metrics := f.face.Metrics()
-	advH := fixedInt26ToFloat(metrics.Ascent)
+	// advH := fixedInt26ToFloat(metrics.Ascent+metrics.Descent/2) * fontScale
+	// log.Println(fixedInt26ToFloat(metrics.Ascent)*fontScale, fixedInt26ToFloat(metrics.Descent)*fontScale, fixedInt26ToFloat(metrics.Height)*fontScale)
 
-	return w * fontScale, h * fontScale, advH * fontScale
+	w = w * fontScale
+	mhMax := metrics.Ascent
+	mhMin := metrics.Ascent
+	if metrics.Height > metrics.Ascent {
+		mhMax = metrics.Height
+	}
+
+	if metrics.Height < metrics.Ascent {
+		mhMin = metrics.Height
+	}
+
+	h = fixedInt26ToFloat(mhMax-metrics.Descent/2) * fontScale
+	advH := fixedInt26ToFloat(mhMin-metrics.Descent) * fontScale
+
+	// return w * fontScale, h * fontScale, advH * fontScale
+	return w, h, advH
 }
 
 // OffsetFloor returns the maximum width offset that will fit between characters that
@@ -266,13 +287,15 @@ func (f *Font) OffsetForIndexAdv(msg string, charStartIndex int, stopIndex int) 
 
 	// see how much to scale the size based on current resolution vs desgin resolution
 	fontScale := f.GetCurrentScale()
-	for i, ch := range msg[charStartIndex:] {
+	var i int
+	for _, ch := range msg[charStartIndex:] {
 		// calculate up to the stopIndex but do not include it
 		if i+charStartIndex >= stopIndex {
 			break
 		}
 		adv, _ := f.face.GlyphAdvance(ch)
 		w += fixedInt26ToFloat(adv)
+		i++
 	}
 
 	return w * fontScale
@@ -287,9 +310,9 @@ func fixedInt26ToFloat(fixedInt fixed.Int26_6) float32 {
 	return result
 }
 
-// TextRenderData is a structure containing the raw OpenGL VBO data needed
+// RenderData is a structure containing the raw OpenGL VBO data needed
 // to render a text string for a given texture.
-type TextRenderData struct {
+type RenderData struct {
 	ComboBuffer         []float32 // the combo VBO data (vert/uv/color)
 	IndexBuffer         []uint32  // the element index VBO data
 	Faces               uint32    // the number of faces in the text string
@@ -300,48 +323,50 @@ type TextRenderData struct {
 }
 
 // CreateText makes a new renderable object from the supplied string
-// using the data in the font. The data is returned as a TextRenderData object.
-func (f *Font) CreateText(pos mgl.Vec3, color mgl.Vec4, msg string) TextRenderData {
-	return f.CreateTextAdv(pos, color, -1.0, -1, -1, msg)
+// using the data in the font. The data is returned as a RenderData object.
+func (f *Font) CreateText(pos mgl.Vec2, color mgl.Vec4, msg string) *RenderData {
+	return f.CreateTextAdv(pos, color, -1, -1, -1, msg)
 }
 
 // CreateText makes a new renderable object from the supplied string
 // using the data in the font. The string returned will be the maximum amount of the msg that fits
 // the specified maxWidth (if greater than 0.0) starting at the charOffset specified.
-// The data is returned as a TextRenderData object.
-func (f *Font) CreateTextAdv(pos mgl.Vec3, color mgl.Vec4, maxWidth float32, charOffset int, cursorPosition int, msg string) TextRenderData {
+// The data is returned as a RenderData object.
+func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, charOffset int, cursorPosition int, s string) *RenderData {
 	// this is the texture ID of the font to use in the shader; by default
 	// the library always binds the font to the first texture sampler.
 	const floatTexturePosition = 0.0
 
-	// sanity checks
-	originalLen := len(msg)
-	trimmedMsg := msg
-	if charOffset > 0 && charOffset < originalLen {
-		// trim the string based on incoming character offset
-		trimmedMsg = trimmedMsg[charOffset:]
-	}
+	// // sanity checks
+	// originalLen := len(msg)
+	// trimmedMsg := msg
+	// if charOffset > 0 && charOffset < originalLen {
+	// 	// trim the string based on incoming character offset
+	// 	trimmedMsg = trimmedMsg[charOffset:]
+	// }
 
 	// get the length of our message
-	msgLength := len(trimmedMsg)
+	l := len(s)
 
 	// create the arrays to hold the data to buffer to OpenGL
-	comboBuffer := make([]float32, 0, msgLength*(2+2+4)*4) // pos, uv, color4
-	indexBuffer := make([]uint32, 0, msgLength*6)          // two faces * three indexes
+	comboBuffer := make([]float32, 0, l*(2+2+4)*4) // pos, uv, color4
+	indexBuffer := make([]uint32, 0, l*6)          // two faces * three indexes
 
 	// do a preliminary test to see how much room the message will take up
-	dimX, dimY, advH := f.GetRenderSize(trimmedMsg)
+	dimX, dimY, advH := f.GetRenderSize(s)
 
-	// see how much to scale the size based on current resolution vs desgin resolution
 	fontScale := f.GetCurrentScale()
 
 	// loop through the message
-	var totalChars = 0
-	var scaledSize float32 = 0.0
+	var totalChars int
+	var scaledSize float32
 	var cursorOverflowRight bool
-	var penX = pos[0]
+
+	var penX = pos[0] - 1
 	var penY = pos[1] - float32(advH)
-	for chi, ch := range trimmedMsg {
+	var chi int
+	for _, ch := range s {
+
 		// get the rune data
 		chData := f.locations[ch]
 
@@ -369,7 +394,7 @@ func (f *Font) CreateTextAdv(pos mgl.Vec3, color mgl.Vec4, maxWidth float32, cha
 			// the cursor position is covered within this string or if that hasn't
 			// been reached yet.
 			if cursorPosition >= 0 && cursorPosition-charOffset > chi {
-				cursorOverflowRight = true
+				// cursorOverflowRight = true
 			}
 
 			// adjust the dimX here since we shortened the string
@@ -429,9 +454,10 @@ func (f *Font) CreateTextAdv(pos mgl.Vec3, color mgl.Vec4, maxWidth float32, cha
 		// advance the pen
 		penX += advWidth * fontScale
 		totalChars++
+		chi++
 	}
 
-	return TextRenderData{
+	return &RenderData{
 		ComboBuffer:         comboBuffer,
 		IndexBuffer:         indexBuffer,
 		Faces:               uint32(totalChars * 2),
@@ -449,13 +475,13 @@ func (f *Font) loadRGBAToTexture(rgba []byte, imageSize int32) graphics.Texture 
 
 // loadRGBAToTextureExt takes a byte slice and throws it into an OpenGL texture.
 func (f *Font) loadRGBAToTextureExt(rgba []byte, imageSize, magFilter, minFilter, wrapS, wrapT int32) graphics.Texture {
-	tex := f.Owner.gfx.GenTexture()
-	f.Owner.gfx.ActiveTexture(graphics.TEXTURE0)
-	f.Owner.gfx.BindTexture(graphics.TEXTURE_2D, tex)
-	f.Owner.gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MAG_FILTER, magFilter)
-	f.Owner.gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MIN_FILTER, minFilter)
-	f.Owner.gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_S, wrapS)
-	f.Owner.gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_T, wrapT)
-	f.Owner.gfx.TexImage2D(graphics.TEXTURE_2D, 0, graphics.RGBA, imageSize, imageSize, 0, graphics.RGBA, graphics.UNSIGNED_BYTE, f.Owner.gfx.Ptr(rgba), len(rgba))
+	tex := gfx.GenTexture()
+	gfx.ActiveTexture(graphics.TEXTURE0)
+	gfx.BindTexture(graphics.TEXTURE_2D, tex)
+	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MAG_FILTER, magFilter)
+	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MIN_FILTER, minFilter)
+	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_S, wrapS)
+	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_T, wrapT)
+	gfx.TexImage2D(graphics.TEXTURE_2D, 0, graphics.RGBA, imageSize, imageSize, 0, graphics.RGBA, graphics.UNSIGNED_BYTE, gfx.Ptr(rgba), len(rgba))
 	return tex
 }
