@@ -322,14 +322,22 @@ type input struct {
 func (wgt *Widget) inputConstructor(cmd *cmdList) (crd *RenderData, style Style) {
 
 	click, onWidget := wgt.IsClick()
-	if click && onWidget {
-		ActiveWidget = wgt
-	} else if click && !onWidget {
-		ActiveWidget = nil
+	if click {
+		if onWidget {
+			ActiveWidget = wgt
+			return
+		} else if ActiveWidget == wgt {
+			ActiveWidget = nil
+			return
+		}
+	}
+
+	if ActiveWidget == nil {
+		Keys.DisableListening()
+		return
 	}
 
 	if ActiveWidget != wgt {
-		Keys.DisableListening()
 		return
 	}
 

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"runtime"
 	"time"
@@ -83,7 +84,8 @@ func main() {
 	left.NewRow()
 	left.NewButton("button full width", wgtCallback).Layout.SetWidth("100%")
 
-	left.NewInput("id", &inp, wgtCallback)
+	left.NewInput("input0", &inp0, wgtCallback)
+	left.NewInput("input1", &inp1, wgtCallback)
 
 	left.NewCheckbox(&ok, wgtCallback)
 	left.NewText("checkbox")
@@ -120,23 +122,24 @@ func main() {
 
 	redPotion := potionsPack.NewChunk(62, 122, 118, 178)
 	greenPotion := potionsPack.NewChunk(182, 62, 238, 118)
-	dad.NewItem("item0", "10%", "30%", "10%", "10%", redPotion, nil)
-	dad.NewItem("item1", "30%", "30%", "10%", "10%", greenPotion, nil)
+	dad.NewItem("item0", "10%", "30%", "10%", "10%", redPotion, "white")
+	dad.NewItem("item1", "30%", "30%", "10%", "10%", greenPotion, "green")
 
 	//start render
 	renderLoop()
 }
 
-var inp string
+var inp0 string
+var inp1 string
 var ok bool
 var progress float32
 
 func wgtCallback(wgt *fizzgui.Widget) {
-	log.Println(wgt.Text, inp, ok, progress)
+	fmt.Println(wgt.Text, inp0, inp1, ok, progress)
 }
 
 func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val interface{}) bool {
-	log.Println(item.ID, slot.ID, val)
+	fmt.Println(item.ID, slot.ID, val)
 	return true
 }
 
