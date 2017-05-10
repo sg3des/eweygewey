@@ -154,9 +154,16 @@ func (c *Container) draw(bry float32) {
 		r.BRY = bry - c.Layout.Padding.B
 	}
 
-	// build the background of the window
-	combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
-	cmd.PrefixFaces(combos, indexes, fc)
+	if c.Style.Texture != nil {
+		// build the background of the window
+		combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, c.Style.Texture.pack.Texture, c.Style.Texture.Offset)
+		cmd.PrefixFaces(combos, indexes, fc)
+	} else {
+		// build the background of the window
+		combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
+		cmd.PrefixFaces(combos, indexes, fc)
+	}
+
 }
 
 func NewCmdList(layout *Layout) *cmdList {

@@ -22,6 +22,8 @@ type cmdList struct {
 
 	isCustom     bool   // is this a custom render command?
 	onCustomDraw func() // called during Manager.Draw()
+
+	image graphics.Texture
 }
 
 // NewCmdList creates a new command list for rendering.

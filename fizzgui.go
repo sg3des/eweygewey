@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	// VertShader330 is the GLSL vertex shader program for the user interface.
-	VertShader330 = `#version 330
+	MainVertShader = `#version 330
   uniform mat4 VIEW;
   in vec2 VERTEX_POSITION;
   in vec2 VERTEX_UV;
@@ -26,7 +25,7 @@ var (
     gl_Position = VIEW * vec4(VERTEX_POSITION, 0.0, 1.0);
   }`
 
-	FragShader330 = `#version 330
+	MainFragShader = `#version 330
   uniform sampler2D TEX[4];
   in vec2 vs_uv;
   in vec4 vs_color;
@@ -41,28 +40,36 @@ var (
       case 2: frag_color = vs_color * texture(TEX[2], vs_uv).rgba; break;
       case 3: frag_color = vs_color * texture(TEX[3], vs_uv).rgba; break;
     }
-
   }`
 
-	// FragShader330 is the GLSL fragment shader program for the user interface.
-	// NOTE: 4 samplers is a hardcoded value now, but there's no reason it has to be that specifically.
-	// FragShader330 = `#version 330
-	//  uniform sampler2D TEX[4];
-	//  in vec2 vs_uv;
-	//  in vec4 vs_color;
-	//  in float vs_tex_index;
-	//  out vec4 frag_color;
-	//  void main()
-	//  {
-	//    switch(int(vs_tex_index))
-	//    {
-	//      case 0: frag_color = vs_color * texture(TEX[0], vs_uv).rgba; break;
-	//      case 1: frag_color = vs_color * texture(TEX[1], vs_uv).rgba; break;
-	//      case 2: frag_color = vs_color * texture(TEX[2], vs_uv).rgba; break;
-	//      case 3: frag_color = vs_color * texture(TEX[3], vs_uv).rgba; break;
-	//    }
+	ImageVerShader = `#version 330
+  uniform mat4 VIEW;
+  
+  in vec2 VERTEX_POSITION;
+  in vec2 VERTEX_UV;
+  in vec4 VERTEX_COLOR;
 
-	//  }`
+  out vec2 vs_uv;
+  out vec4 vs_color;
+  
+  void main()
+  {
+    vs_color = VERTEX_COLOR;
+    gl_Position = VIEW * vec4(VERTEX_POSITION, 0.0, 1.0);
+    vs_uv = VERTEX_UV;
+  }`
+
+	ImageFragShader = `#version 330
+  uniform sampler2D IMAGE;
+  
+  in vec2 vs_uv;
+  in vec4 vs_color;
+  
+  out vec4 frag_color;
+  void main()
+  {
+    frag_color = vs_color * texture(IMAGE, vs_uv).rgba;
+  }`
 )
 
 // Color takes the color parameters as integers and returns them

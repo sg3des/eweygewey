@@ -73,3 +73,7 @@ func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *TextureChunk {
 	}
 	return tc
 }
+
+func LoadImage(imgPath string) (graphicsprovider.Texture, error) {
+	return fizzle.LoadImageToTexture(imgPath)
+}

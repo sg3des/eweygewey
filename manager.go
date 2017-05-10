@@ -17,7 +17,8 @@ var (
 	window *glfw.Window
 	gfx    graphics.GraphicsProvider
 
-	shader graphics.Program
+	mainShader  graphics.Program
+	imageShader graphics.Program
 
 	comboBuffer []float32
 	indexBuffer []uint32
@@ -30,6 +31,7 @@ var (
 	dt        float32
 
 	whitePixelUv = mgl.Vec4{1, 1, 1, 1}
+	imagePixelUv = mgl.Vec4{0, 0, 1, 1}
 
 	fonts map[string]*Font
 
@@ -53,7 +55,12 @@ func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	vao = gfx.GenVertexArray()
 
 	var err error
-	shader, err = compileShader(VertShader330, FragShader330)
+	mainShader, err = compileShader(MainVertShader, MainFragShader)
+	if err != nil {
+		return err
+	}
+
+	imageShader, err = compileShader(ImageVerShader, ImageFragShader)
 	if err != nil {
 		return err
 	}
@@ -80,10 +87,6 @@ func updateWindowLayout() {
 func DelContainer(ptr *Container) {
 	for i, c := range containers {
 		if c == ptr {
-			for w := range c.Widgets {
-				c.Widgets[w] = nil
-			}
-			ptr = nil
 			containers[i] = nil
 			containers = append(containers[:i], containers[i+1:]...)
 			return
@@ -157,24 +160,7 @@ C:
 		}
 	}
 
-	// call all of the frame start callbacks
-	// for _, frameStartCB := range frameStartCallbacks {
-	// 	frameStartCB(FrameStart)
-	// }
-
-	// trigger a mouse position check each frame
-	// GetMousePosition()
-	// GetScrollWheelDelta(false)
-
-	// see if we need to clear the active widget id
-	/*if GetMouseButtonAction(0) == MouseUp {
-		ClearActiveInputID()
-	}*/
-
-	// loop through all of the windows and tell them to self-construct.
-	log.Println(len(containers))
 	for _, c := range containers {
-		log.Println(c == nil)
 		if c != nil {
 			c.construct()
 		}
@@ -183,9 +169,9 @@ C:
 	render()
 }
 
-// bindOpenGLData sets the program, VAO, uniforms and attributes required for the
+// bindMainShader sets the program, VAO, uniforms and attributes required for the
 // controls to be drawn from the command buffers
-func bindOpenGLData(view mgl.Mat4) {
+func bindMainShader(view mgl.Mat4) {
 	const floatSize = 4
 	const uintSize = 4
 	const posOffset = 0
@@ -194,15 +180,15 @@ func bindOpenGLData(view mgl.Mat4) {
 	const colorOffset = floatSize * 5
 	const VBOStride = floatSize * (2 + 2 + 1 + 4) // vert / uv / texIndex / color
 
-	gfx.UseProgram(shader)
+	gfx.UseProgram(mainShader)
 	gfx.BindVertexArray(vao)
 
 	// bind the uniforms and attributes
-	shaderViewMatrix := gfx.GetUniformLocation(shader, "VIEW")
+	shaderViewMatrix := gfx.GetUniformLocation(mainShader, "VIEW")
 	gfx.UniformMatrix4fv(shaderViewMatrix, 1, false, view)
 
 	for _, font := range fonts {
-		shaderTex0 := gfx.GetUniformLocation(shader, "TEX[0]")
+		shaderTex0 := gfx.GetUniformLocation(mainShader, "TEX[0]")
 		if shaderTex0 >= 0 {
 			if font != nil {
 				gfx.ActiveTexture(graphics.TEXTURE0)
@@ -216,7 +202,7 @@ func bindOpenGLData(view mgl.Mat4) {
 	var texUniLoc int32
 	for _, tex := range textures {
 		uniStr := fmt.Sprintf("TEX[%d]", tex.ID)
-		texUniLoc = gfx.GetUniformLocation(shader, uniStr)
+		texUniLoc = gfx.GetUniformLocation(mainShader, uniStr)
 		if texUniLoc >= 0 {
 			gfx.ActiveTexture(graphics.TEXTURE0 + tex.Texture)
 			gfx.BindTexture(graphics.TEXTURE_2D, tex.Texture)
@@ -228,22 +214,58 @@ func bindOpenGLData(view mgl.Mat4) {
 		gfx.Uniform1i(texUniLoc+1, int32(len(textures)+1))
 	}
 
-	shaderPosition := gfx.GetAttribLocation(shader, "VERTEX_POSITION")
+	shaderPosition := gfx.GetAttribLocation(mainShader, "VERTEX_POSITION")
 	gfx.BindBuffer(graphics.ARRAY_BUFFER, comboVBO)
 	gfx.EnableVertexAttribArray(uint32(shaderPosition))
 	gfx.VertexAttribPointer(uint32(shaderPosition), 2, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(posOffset))
 
-	uvPosition := gfx.GetAttribLocation(shader, "VERTEX_UV")
+	uvPosition := gfx.GetAttribLocation(mainShader, "VERTEX_UV")
 	gfx.EnableVertexAttribArray(uint32(uvPosition))
 	gfx.VertexAttribPointer(uint32(uvPosition), 2, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(uvOffset))
 
-	colorPosition := gfx.GetAttribLocation(shader, "VERTEX_COLOR")
+	colorPosition := gfx.GetAttribLocation(mainShader, "VERTEX_COLOR")
 	gfx.EnableVertexAttribArray(uint32(colorPosition))
 	gfx.VertexAttribPointer(uint32(colorPosition), 4, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(colorOffset))
 
-	texIdxPosition := gfx.GetAttribLocation(shader, "VERTEX_TEXTURE_INDEX")
+	texIdxPosition := gfx.GetAttribLocation(mainShader, "VERTEX_TEXTURE_INDEX")
 	gfx.EnableVertexAttribArray(uint32(texIdxPosition))
 	gfx.VertexAttribPointer(uint32(texIdxPosition), 1, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(texIdxOffset))
+
+	gfx.BindBuffer(graphics.ELEMENT_ARRAY_BUFFER, indexVBO)
+}
+
+func bindImageShader(view mgl.Mat4, image graphics.Texture) {
+	const floatSize = 4
+	const uintSize = 4
+	const posOffset = 0
+	const uvOffset = floatSize * 2
+	const colorOffset = floatSize * 5
+	const VBOStride = floatSize * (2 + 2 + 1 + 4) // vert / uv / texIndex / color
+
+	gfx.UseProgram(imageShader)
+	gfx.BindVertexArray(vao)
+
+	IMAGE := gfx.GetUniformLocation(imageShader, "IMAGE")
+	gfx.ActiveTexture(image)
+	gfx.BindTexture(graphics.TEXTURE_2D, image)
+	gfx.Uniform1i(IMAGE, 2) // i`m don`t now how it`s work
+
+	// bind the uniforms and attributes
+	shaderViewMatrix := gfx.GetUniformLocation(imageShader, "VIEW")
+	gfx.UniformMatrix4fv(shaderViewMatrix, 1, false, view)
+
+	shaderPosition := gfx.GetAttribLocation(imageShader, "VERTEX_POSITION")
+	gfx.BindBuffer(graphics.ARRAY_BUFFER, comboVBO)
+	gfx.EnableVertexAttribArray(uint32(shaderPosition))
+	gfx.VertexAttribPointer(uint32(shaderPosition), 2, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(posOffset))
+
+	uvPosition := gfx.GetAttribLocation(imageShader, "VERTEX_UV")
+	gfx.EnableVertexAttribArray(uint32(uvPosition))
+	gfx.VertexAttribPointer(uint32(uvPosition), 2, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(uvOffset))
+
+	colorPosition := gfx.GetAttribLocation(imageShader, "VERTEX_COLOR")
+	gfx.EnableVertexAttribArray(uint32(colorPosition))
+	gfx.VertexAttribPointer(uint32(colorPosition), 4, graphics.FLOAT, false, VBOStride, gfx.PtrOffset(colorOffset))
 
 	gfx.BindBuffer(graphics.ELEMENT_ARRAY_BUFFER, indexVBO)
 }
@@ -313,7 +335,7 @@ func render() {
 	gfx.BufferData(graphics.ELEMENT_ARRAY_BUFFER, uintSize*len(indexBuffer), gfx.Ptr(&indexBuffer[0]), graphics.STREAM_DRAW)
 
 	// this should be set to true when the uniforms and attributes, etc... need to be rebound
-	needRebinding := true
+	// needRebinding := true
 
 	// loop through the windows and each window's draw cmd list
 	indexOffset := uint32(0)
@@ -324,6 +346,7 @@ func render() {
 			if !ok {
 				continue
 			}
+
 			for _, cmd := range cmds {
 				if cmd.faceCount == 0 {
 					continue
@@ -331,25 +354,22 @@ func render() {
 
 				// gfx.Scissor(int32(cmd.clipRect.TLX), int32(cmd.clipRect.BRY), int32(cmd.clipRect.W), int32(cmd.clipRect.H))
 
-				// for most widgets, isCustom will be false, so we just draw things how we have them bound and then
-				// update the index offset into the master combo and index buffers stored in Manager.
-				if !cmd.isCustom {
-					if needRebinding {
-						// bind all of the uniforms and attributes
-						bindOpenGLData(view)
-						gfx.Viewport(0, 0, int32(wndLayout.W), int32(wndLayout.H))
-						needRebinding = false
-					}
-					gfx.DrawElements(graphics.TRIANGLES, int32(cmd.faceCount*3), graphics.UNSIGNED_INT, gfx.PtrOffset(int(indexOffset)*uintSize))
-					indexOffset += cmd.faceCount * 3
+				if cmd.image > 0 {
+					bindImageShader(view, cmd.image)
 				} else {
-					gfx.Viewport(int32(cmd.clipRect.TLX), int32(cmd.clipRect.TLY), int32(cmd.clipRect.BRX), int32(cmd.clipRect.BRY))
-					cmd.onCustomDraw()
-					needRebinding = true
+					bindMainShader(view)
 				}
+
+				gfx.Viewport(0, 0, int32(wndLayout.W), int32(wndLayout.H))
+
+				gfx.DrawElements(graphics.TRIANGLES, int32(cmd.faceCount*3), graphics.UNSIGNED_INT, gfx.PtrOffset(int(indexOffset)*uintSize))
+				indexOffset += cmd.faceCount * 3
+
 			}
 		}
 	}
+
+	// log.Println(needRebinding)
 
 	gfx.BindVertexArray(0)
 	gfx.Disable(graphics.SCISSOR_TEST)

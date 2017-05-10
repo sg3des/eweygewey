@@ -54,11 +54,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	potionsPack, err := fizzgui.AddTexturePackImg("../assets/potions.png")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	//left container
 	left := fizzgui.NewContainer("left-container", "2%", "2%", "48%", "96%")
 	left.AutoAdjustHeight = true
@@ -120,10 +115,10 @@ func main() {
 	dad.NewSlot("slot0", "10%", "10%", "12%", "12%", dadCallback)
 	dad.NewSlot("slot0", "30%", "10%", "12%", "12%", dadCallback)
 
-	redPotion := potionsPack.NewChunk(62, 122, 118, 178)
-	greenPotion := potionsPack.NewChunk(182, 62, 238, 118)
-	dad.NewItem("item0", "10%", "30%", "10%", "10%", redPotion, "white")
-	dad.NewItem("item1", "30%", "30%", "10%", "10%", greenPotion, "green")
+	red := "../assets/red.png"
+	green := "../assets/green.png"
+	dad.NewItem("item0", "10%", "30%", "10%", "10%", red, "red")
+	dad.NewItem("item1", "30%", "30%", "10%", "10%", green, "green")
 
 	//start render
 	renderLoop()

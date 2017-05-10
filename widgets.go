@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/tbogdala/fizzle/graphicsprovider"
 )
 
 type TALIGN int
@@ -32,6 +33,7 @@ type Widget struct {
 	TextAlign TALIGN
 	font      *Font
 
+	Image   graphicsprovider.Texture
 	Texture *TextureChunk //Global widget texture
 
 	Style       Style
@@ -140,14 +142,14 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 
 	r := l.GetBackgroundRect()
 
-	tc := wgt.Texture
-	if style.Texture != nil {
-		tc = style.Texture
-	}
-
-	if tc != nil {
-		wgt.renderTexture(cmd, r, style, tc)
-	} else if style.BackgroundColor[3] > 0 {
+	switch {
+	case wgt.Image > 0:
+		wgt.renderImage(cmd, r, style, wgt.Image)
+	case style.Texture != nil:
+		wgt.renderTexture(cmd, r, style, style.Texture)
+	case wgt.Texture != nil:
+		wgt.renderTexture(cmd, r, style, wgt.Texture)
+	case style.BackgroundColor[3] > 0:
 		wgt.renderBackground(cmd, r, style)
 	}
 
@@ -193,6 +195,12 @@ func (wgt *Widget) renderText(style Style, w, h, maxWidth float32) (rt *RenderDa
 	}
 
 	return
+}
+
+func (wgt *Widget) renderImage(cmd *cmdList, r Rect, style Style, img graphicsprovider.Texture) {
+	cmd.image = img
+	combos, indexes, fc := cmd.DrawRectFilledDC(r, style.BackgroundColor, img, imagePixelUv)
+	cmd.AddFaces(combos, indexes, fc)
 }
 
 func (wgt *Widget) renderTexture(cmd *cmdList, r Rect, style Style, tc *TextureChunk) {
@@ -538,7 +546,7 @@ type DADItem struct {
 }
 
 //NewItem - create new DADItem
-func (group *DADGroup) NewItem(id, x, y, w, h string, tc *TextureChunk, value interface{}) (*DADItem, error) {
+func (group *DADGroup) NewItem(id, x, y, w, h, img string, value interface{}) (*DADItem, error) {
 	c := group.container
 
 	wgt := &Widget{
@@ -554,7 +562,11 @@ func (group *DADGroup) NewItem(id, x, y, w, h string, tc *TextureChunk, value in
 		wgt.Layout.Square = true
 	}
 
-	wgt.Texture = tc
+	var err error
+	wgt.Image, err = LoadImage(img)
+	if err != nil {
+		return nil, err
+	}
 
 	c.addWidget(wgt)
 
