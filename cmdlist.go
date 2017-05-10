@@ -17,13 +17,9 @@ type cmdList struct {
 	indexBuffer  []uint32  // vbo elements
 	faceCount    uint32    // face count
 	indexTracker uint32    // the offset for the next set of indexes when adding new faces
-	clipRect     Rect      // clip rect [x1,y1,x2,y2] top-left to bottom-right
-	// textureID    graphics.Texture // texture to bind
+	clipRect     Rect      // clip rect [x1,y1,x2,y2] top-left to
 
-	isCustom     bool   // is this a custom render command?
-	onCustomDraw func() // called during Manager.Draw()
-
-	image graphics.Texture
+	image graphics.Texture // image if it not 0, then rander image shader
 }
 
 // NewCmdList creates a new command list for rendering.

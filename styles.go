@@ -4,6 +4,12 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+// Color takes the color parameters as integers and returns them
+// as a float vector.
+func Color(r, g, b, a int) mgl32.Vec4 {
+	return mgl32.Vec4{float32(r) / 255.0, float32(g) / 255.0, float32(b) / 255.0, float32(a) / 255.0}
+}
+
 type Style struct {
 	exist           bool
 	TextColor       mgl32.Vec4

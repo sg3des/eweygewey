@@ -1,6 +1,3 @@
-// Copyright 2016, Timothy Bogdala <tdb@animal-machine.com>
-// See the LICENSE file for more details.
-
 package main
 
 import (
@@ -9,29 +6,22 @@ import (
 	"runtime"
 	"time"
 
-	glfw "github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/glfw/v3.1/glfw"
+
+	"github.com/tbogdala/fizzle"
+	"github.com/tbogdala/fizzle/graphicsprovider"
+	"github.com/tbogdala/fizzle/graphicsprovider/opengl"
 
 	"github.com/sg3des/fizzgui"
-
-	fizzle "github.com/tbogdala/fizzle"
-	graphics "github.com/tbogdala/fizzle/graphicsprovider"
-	"github.com/tbogdala/fizzle/graphicsprovider/opengl"
 )
 
 var (
 	window *glfw.Window
-	gfx    graphics.GraphicsProvider
+	gfx    graphicsprovider.GraphicsProvider
 )
 
-// GLFW event handling must run on the main OS thread
 func init() {
 	runtime.LockOSThread()
-}
-
-func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	if key == glfw.KeyEscape && action == glfw.Press {
-		w.SetShouldClose(true)
-	}
 }
 
 func main() {
@@ -138,9 +128,25 @@ func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val interface{}) 
 	return true
 }
 
+func renderLoop() {
+	for !window.ShouldClose() {
+		w, h := window.GetFramebufferSize()
+		gfx.Viewport(0, 0, int32(w), int32(h))
+		gfx.ClearColor(0.4, 0.4, 0.4, 1)
+		gfx.Clear(graphicsprovider.COLOR_BUFFER_BIT | graphicsprovider.DEPTH_BUFFER_BIT)
+
+		// draw the user interface
+		fizzgui.Construct()
+
+		// draw the screen and get any input
+		window.SwapBuffers()
+		glfw.PollEvents()
+	}
+}
+
 // initGraphics creates an OpenGL window and initializes the required graphics libraries.
 // It will either succeed or panic.
-func initGraphics(title string, w int, h int) (*glfw.Window, graphics.GraphicsProvider) {
+func initGraphics(title string, w int, h int) (*glfw.Window, graphicsprovider.GraphicsProvider) {
 
 	err := glfw.Init()
 	if err != nil {
@@ -172,29 +178,19 @@ func initGraphics(title string, w int, h int) (*glfw.Window, graphics.GraphicsPr
 	fizzle.SetGraphics(gfx)
 
 	// set some additional OpenGL flags
-	gfx.BlendEquation(graphics.FUNC_ADD)
-	gfx.BlendFunc(graphics.SRC_ALPHA, graphics.ONE_MINUS_SRC_ALPHA)
-	gfx.Enable(graphics.BLEND)
-	gfx.Enable(graphics.TEXTURE_2D)
-	gfx.Enable(graphics.CULL_FACE)
+	gfx.BlendEquation(graphicsprovider.FUNC_ADD)
+	gfx.BlendFunc(graphicsprovider.SRC_ALPHA, graphicsprovider.ONE_MINUS_SRC_ALPHA)
+	gfx.Enable(graphicsprovider.BLEND)
+	gfx.Enable(graphicsprovider.TEXTURE_2D)
+	gfx.Enable(graphicsprovider.CULL_FACE)
 
 	window.SetKeyCallback(keyCallback)
 
 	return window, gfx
 }
 
-func renderLoop() {
-	for !window.ShouldClose() {
-		w, h := window.GetFramebufferSize()
-		gfx.Viewport(0, 0, int32(w), int32(h))
-		gfx.ClearColor(0.4, 0.4, 0.4, 1)
-		gfx.Clear(graphics.COLOR_BUFFER_BIT | graphics.DEPTH_BUFFER_BIT)
-
-		// draw the user interface
-		fizzgui.Construct()
-
-		// draw the screen and get any input
-		window.SwapBuffers()
-		glfw.PollEvents()
+func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if key == glfw.KeyEscape && action == glfw.Press {
+		w.SetShouldClose(true)
 	}
 }
