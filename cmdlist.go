@@ -8,78 +8,102 @@ import (
 	graphics "github.com/tbogdala/fizzle/graphicsprovider"
 )
 
-const defaultTextureSampler graphics.Texture = 0
+const defaultTextureSampler graphics.Texture = 1
 
-// cmdList will hold all of the information required for one draw call in the
-// user interface.
+//cmdLists used to the render
+var zcmds map[uint8][]*cmdList
+
+// cmdList will hold all of the information required for one draw call in the user interface.
 type cmdList struct {
 	comboBuffer  []float32 // vbo combo floats
 	indexBuffer  []uint32  // vbo elements
 	faceCount    uint32    // face count
 	indexTracker uint32    // the offset for the next set of indexes when adding new faces
-	clipRect     Rect      // clip rect [x1,y1,x2,y2] top-left to
 
-	image graphics.Texture // image if it not 0, then rander image shader
+	texture graphics.Texture
 }
 
 // NewCmdList creates a new command list for rendering.
 func newCmdList() *cmdList {
 	const defaultBufferSize = 1024
-	cmds := new(cmdList)
-	cmds.comboBuffer = make([]float32, 0, defaultBufferSize)
-	cmds.indexBuffer = make([]uint32, 0, defaultBufferSize)
-	return cmds
+	cmd := new(cmdList)
+	cmd.comboBuffer = make([]float32, 0, defaultBufferSize)
+	cmd.indexBuffer = make([]uint32, 0, defaultBufferSize)
+	cmd.texture = defaultTextureSampler
+
+	return cmd
+}
+
+//GetFirstCmd create new cmd and insert in to first element
+func GetFirstCmd(z uint8) *cmdList {
+	if _, ok := zcmds[z]; !ok {
+		zcmds[z] = []*cmdList{}
+	}
+
+	prepandCmd := newCmdList()
+	zcmds[z] = append([]*cmdList{prepandCmd}, zcmds[z]...)
+
+	return zcmds[z][0]
+}
+
+//GetLastCmd will return the last non-custom cmdList
+func GetLastCmd(z uint8) *cmdList {
+	if _, ok := zcmds[z]; !ok {
+		zcmds[z] = []*cmdList{}
+	}
+
+	appendCmd := newCmdList()
+	zcmds[z] = append(zcmds[z], appendCmd)
+
+	return appendCmd
 }
 
 // AddFaces takes the raw vertex attribute data in a float slice as well as the
 // element indexes and adds it to the internal buffers for rendering.
-func (cmds *cmdList) AddFaces(comboFloats []float32, indexInts []uint32, faceCount uint32) {
-	cmds.comboBuffer = append(cmds.comboBuffer, comboFloats...)
+func (cmd *cmdList) AddFaces(comboFloats []float32, indexInts []uint32, faceCount uint32) {
+	cmd.comboBuffer = append(cmd.comboBuffer, comboFloats...)
 
 	// manually adjust each index so that they don't collide with
 	// existing element indexes
 	var highestIndex uint32
-	startIndex := cmds.indexTracker
+	startIndex := cmd.indexTracker
 	for _, idx := range indexInts {
 		if idx > highestIndex {
 			highestIndex = idx
 		}
-		cmds.indexBuffer = append(cmds.indexBuffer, startIndex+idx)
+		cmd.indexBuffer = append(cmd.indexBuffer, startIndex+idx)
 	}
 
-	cmds.faceCount += faceCount
-	cmds.indexTracker += highestIndex + 1
+	cmd.faceCount += faceCount
+	cmd.indexTracker += highestIndex + 1
 }
 
-// PrefixFaces takes the raw vertex attribute data in a float slice as well as the
-// element indexes and adds it to the internal buffers for rendering at the begining.
-func (cmds *cmdList) PrefixFaces(comboFloats []float32, indexInts []uint32, faceCount uint32) {
-	cmds.comboBuffer = append(cmds.comboBuffer, comboFloats...)
+// PrefixFaces takes the raw vertex attribute data in a float slice as well as the element indexes and adds it to the internal buffers for rendering at the begining.
+func (cmd *cmdList) PrefixFaces(comboFloats []float32, indexInts []uint32, faceCount uint32) {
+	cmd.comboBuffer = append(cmd.comboBuffer, comboFloats...)
 
 	// manually adjust each index so that they don't collide with
 	// existing element indexes
 	var temp []uint32
 	var highestIndex uint32
-	startIndex := cmds.indexTracker
+	startIndex := cmd.indexTracker
 	for _, idx := range indexInts {
 		if idx > highestIndex {
 			highestIndex = idx
 		}
 		temp = append(temp, startIndex+idx)
 	}
-	cmds.indexBuffer = append(temp, cmds.indexBuffer...)
+	cmd.indexBuffer = append(temp, cmd.indexBuffer...)
 
-	cmds.faceCount += faceCount
-	cmds.indexTracker += highestIndex + 1
+	cmd.faceCount += faceCount
+	cmd.indexTracker += highestIndex + 1
 }
 
 // DrawRectFilledDC draws a rectangle in the user interface using a solid background.
 // Coordinate parameters should be passed in display coordinates.
 // Returns the combo vertex data, element indexes and face count for the rect.
-func (cmds *cmdList) DrawRectFilledDC(r Rect, color mgl.Vec4, tex graphics.Texture, uv mgl.Vec4) ([]float32, []uint32, uint32) {
-	// uv := whitePixelUv
-
-	// tlx, tly, brx, bry float32
+func (cmd *cmdList) DrawFilledRect(r Rect, color mgl.Vec4, tex graphics.Texture, uv mgl.Vec4) { //([]float32, []uint32, uint32)
+	cmd.texture = tex
 
 	verts := [8]float32{
 		r.TLX, r.BRY,
@@ -124,6 +148,5 @@ func (cmds *cmdList) DrawRectFilledDC(r Rect, color mgl.Vec4, tex graphics.Textu
 		indexBuffer = append(indexBuffer, indexes[i])
 	}
 
-	// return the vertex data
-	return comboBuffer, indexBuffer, 2
+	cmd.AddFaces(comboBuffer, indexBuffer, 2)
 }

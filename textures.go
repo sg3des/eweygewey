@@ -10,18 +10,13 @@ import (
 	"github.com/tbogdala/fizzle/graphicsprovider"
 )
 
-type TextureID int32
-
-var textures []*TexturePack
-
 type TexturePack struct {
-	ID            TextureID
 	Width, Height float32
-	Texture       graphicsprovider.Texture
+	Tex           graphicsprovider.Texture
 }
 
-func AddTexturePackImg(imgPath string) (*TexturePack, error) {
-	f, err := os.Open(imgPath)
+func NewTexturePack(img string) (*TexturePack, error) {
+	f, err := os.Open(img)
 	if err != nil {
 		return nil, err
 	}
@@ -31,36 +26,33 @@ func AddTexturePackImg(imgPath string) (*TexturePack, error) {
 		return nil, err
 	}
 
-	tex, err := fizzle.LoadImageToTexture(imgPath)
+	tex, err := fizzle.LoadImageToTexture(img)
 	if err != nil {
 		return nil, err
 	}
 
-	id := TextureID(len(textures) + 1)
-
 	tp := &TexturePack{
-		ID:      id,
-		Texture: tex,
-		Width:   float32(info.Width),
-		Height:  float32(info.Height),
+		Tex:    tex,
+		Width:  float32(info.Width),
+		Height: float32(info.Height),
 	}
-	textures = append(textures, tp)
-	// textures[id] = tp
 
 	return tp, nil
 }
 
-// func AddTexturePack(tex graphicsprovider.Texture) *TexturePack {
-
-// 	return tp
-// }
-
 type TextureChunk struct {
-	pack   *TexturePack
+	Tex    graphicsprovider.Texture
 	Offset mgl32.Vec4
 }
 
 func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *TextureChunk {
+	if x0 > x1 {
+		x1, x0 = x0, x1
+	}
+	if y0 < y1 {
+		y1, y0 = y0, y1
+	}
+
 	x0 = x0 / tp.Width
 	y0 = 1 - y0/tp.Height
 
@@ -68,12 +60,12 @@ func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *TextureChunk {
 	y1 = 1 - y1/tp.Height
 
 	tc := &TextureChunk{
-		pack:   tp,
-		Offset: mgl32.Vec4{x0, y1, x1, y0},
+		Tex:    tp.Tex,
+		Offset: mgl32.Vec4{x0, y0, x1, y1},
 	}
 	return tc
 }
 
-func LoadImage(imgPath string) (graphicsprovider.Texture, error) {
-	return fizzle.LoadImageToTexture(imgPath)
+func LoadImage(img string) (graphicsprovider.Texture, error) {
+	return fizzle.LoadImageToTexture(img)
 }

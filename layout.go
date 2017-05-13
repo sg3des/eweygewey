@@ -8,25 +8,27 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
-type ALIGN int
+type HAlign int
+type VAlign int
 
 const (
-	ALIGN_LEFT_TOP ALIGN = iota
-	ALIGN_LEFT_MIDDLE
-	ALIGN_LEFT_BOTTOM
-	ALIGN_CENTER_TOP
-	ALIGN_CENTER_MIDDLE
-	ALIGN_CENTER_BOTTOM
-	ALIGN_RIGHT_TOP
-	ALIGN_RIGHT_MIDDLE
-	ALIGN_RIGHT_BOTTOM
+	HAlignLeft = iota
+	HAlignCenter
+	HAlignRight
+)
+
+const (
+	VAlignTop = iota
+	VAlignMiddle
+	VAlignBottom
 )
 
 //Size contains universial reresentation for fixed and percent sizes
 type Size struct {
-	value    float32
-	minValue float32
-	percent  bool
+	value   float32
+	min     float32
+	max     float32
+	percent bool
 }
 
 //ParseSize parse string value to float and percent bool
@@ -56,12 +58,39 @@ func ParseSize(val string) (i float32, percent bool) {
 }
 
 // NewSize return Size object contains value(ex:"100%","50px",etc) and potiner on maxValue for calculate percent value
-func NewSize(val string, minValue float32) (s Size) {
+func NewSize(val string, min, max float32) (s Size) {
+	if max <= 0 {
+		max = 99999
+	}
+
 	s = Size{
-		minValue: minValue,
+		min: min,
+		max: max,
 	}
 
 	s.value, s.percent = ParseSize(val)
+
+	return
+}
+
+func (s Size) calcSize(parentSize float32) (n float32) {
+	if s.percent {
+		n = s.value * parentSize
+	} else {
+		n = s.value
+	}
+
+	if n < s.min {
+		n = s.min
+	}
+
+	if n > parentSize {
+		n = parentSize
+	}
+
+	if n > s.max {
+		n = s.max
+	}
 
 	return
 }
@@ -82,7 +111,9 @@ var DefaultPadding = Offset{4, 4, 4, 4}
 
 //Layout is reresentation of object size position and other options
 type Layout struct {
-	// Align ALIGN
+	HAlign HAlign
+	VAlign VAlign
+
 	PositionFixed bool
 	Square        bool
 
@@ -105,10 +136,10 @@ type Layout struct {
 func NewLayout(x, y, w, h string, parent *Layout) *Layout {
 	r := &Layout{
 		parent: parent,
-		x:      NewSize(x, 0),
-		y:      NewSize(y, 0),
-		w:      NewSize(w, 0),
-		h:      NewSize(h, 0),
+		x:      NewSize(x, 0, 0),
+		y:      NewSize(y, 0, 0),
+		w:      NewSize(w, 0, 0),
+		h:      NewSize(h, 0, 0),
 
 		Padding: DefaultPadding,
 		Margin:  DefaultMargin,
@@ -140,73 +171,111 @@ func (l *Layout) SetY(val string) {
 //Update layout values, should be call each frame
 func (l *Layout) Update() {
 	r := l.parent.GetContentRect()
-	// log.Println(r)
 
-	//x
-	l.X = r.TLX
-	if l.x.percent {
-		l.X += l.x.value * r.W
-	} else {
-		l.X += l.x.value
-	}
+	l.W = l.w.calcSize(r.W)
+	l.H = l.h.calcSize(r.H)
+	l.updateHorizPosition(r)
+	l.updateVertPosition(r)
 
-	//y
-	l.Y = r.TLY
-	if l.y.percent {
-		l.Y -= l.y.value * r.H
-	} else {
-		l.Y -= l.y.value
-	}
+	// //x
+	// l.X = r.TLX
+	// if l.x.percent {
+	// 	l.X += l.x.value * r.W
+	// } else {
+	// 	l.X += l.x.value
+	// }
 
-	//height
-	if l.h.percent {
-		l.H = l.h.value * r.H
-	} else {
-		l.H = l.h.value
-	}
-	if l.H < l.h.minValue {
-		l.H = l.h.minValue
-	}
+	// //y
+	// l.Y = r.TLY
+	// if l.y.percent {
+	// 	l.Y -= l.y.value * r.H
+	// } else {
+	// 	l.Y -= l.y.value
+	// }
 
-	//width
+	// //height
+	// if l.h.percent {
+	// 	l.H = l.h.value * r.H
+	// } else {
+	// 	l.H = l.h.value
+	// }
+	// if l.H < l.h.minValue {
+	// 	l.H = l.h.minValue
+	// }
 
-	if l.w.percent {
-		l.W = l.w.value * r.W
-	} else {
-		l.W = l.w.value
-	}
-	if l.W < l.w.minValue {
-		l.W = l.w.minValue
-	}
-
+	//force square size
 	if l.Square {
-		if l.W > l.H {
-			l.H = l.H * (l.W / l.H)
-		}
-		if l.W < l.H {
-			l.W = l.W * (l.H / l.W)
-		}
+		l.H = l.W
+		// if l.W > l.H {
+		// 	l.H = l.H * (l.W / l.H)
+		// }
+		// if l.W < l.H {
+		// 	l.W = l.W * (l.H / l.W)
+		// }
+	}
+}
+
+func (l *Layout) updateHorizPosition(r Rect) {
+	xOffset := l.x.value
+	if l.x.percent {
+		xOffset = l.x.value * r.W
 	}
 
-	// log.Println(l.Y, l.y.value)
+	switch l.HAlign {
+	case HAlignLeft:
+		l.X = r.TLX + xOffset
+	case HAlignCenter:
+		l.X = r.TLX + r.W/2 - l.W/2 + xOffset
+	case HAlignRight:
+		l.X = r.BRX - l.W - xOffset
+	}
+}
+
+func (l *Layout) updateVertPosition(r Rect) {
+	offset := l.y.value
+	if l.y.percent {
+		offset = l.y.value * r.H
+	}
+
+	switch l.VAlign {
+	case VAlignTop:
+		l.Y = r.TLY - offset
+	case VAlignMiddle:
+		l.Y = r.TLY + r.H/2 - l.H/2 - offset
+	case VAlignBottom:
+		l.Y = r.TLY + r.H - l.H - offset
+	}
+}
+
+func (l *Layout) AddOffsets(w, h float32) (float32, float32) {
+	w += l.Margin.L + l.Margin.R + l.Padding.L + l.Padding.R
+	h += l.Margin.T + l.Margin.B + l.Padding.T + l.Padding.B
+	return w, h
 }
 
 //SetMinSize it`s width and height if incoming value more then exists
 func (l *Layout) SetMinSize(w, h float32) {
-	w += l.Margin.L + l.Margin.R + l.Padding.L + l.Padding.R
-	h += l.Margin.T + l.Margin.B + l.Padding.T + l.Padding.B
-
-	l.w.minValue = w
-	l.h.minValue = h
+	l.w.min = w
+	l.h.min = h
 
 	r := l.parent.GetContentRect()
-	if l.w.minValue > r.W {
-		l.w.minValue = r.W
+	if l.w.min > r.W {
+		l.w.min = r.W
 	}
-	if l.h.minValue > r.H {
-		l.h.minValue = r.H
+	if l.h.min > r.H {
+		l.h.min = r.H
 	}
+}
 
+func (l *Layout) SetMaxSize(w, h float32) {
+	if w <= 0 {
+		w = 99999
+	}
+	if h <= 0 {
+		h = 99999
+	}
+	l.w.max = w
+	l.h.max = h
 }
 
 func (l *Layout) SetCursor(cursor *Cursor) {
@@ -281,12 +350,12 @@ func (l *Layout) GetBackgroundRect() (r Rect) {
 	r.W = l.W - l.Margin.L - l.Margin.R
 	r.H = l.H - l.Margin.T - l.Margin.B
 
-	if l.PositionFixed {
-		r.TLX -= r.W / 2
-		r.BRX -= r.W / 2
-		r.TLY += r.H / 2
-		r.BRY += r.H / 2
-	}
+	// if l.PositionFixed {
+	// 	r.TLX -= r.W / 2
+	// 	r.BRX -= r.W / 2
+	// 	r.TLY += r.H / 2
+	// 	r.BRY += r.H / 2
+	// }
 
 	return
 }

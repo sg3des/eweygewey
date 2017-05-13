@@ -23,11 +23,13 @@ const (
 	STATE_CHECKED
 )
 
-type WidgetConstructor func(cmd *cmdList) (*RenderData, Style)
+type WidgetConstructor func() Style
 type Callback func(wgt *Widget)
 
 type Widget struct {
 	ID string
+
+	Hidden bool
 
 	Text      string
 	TextAlign TALIGN
@@ -42,7 +44,8 @@ type Widget struct {
 
 	State STATE
 
-	Zorder uint8
+	Zorder uint8 //initial value
+	Z      uint8 //current working value
 
 	Layout    *Layout
 	Container *Container
@@ -99,6 +102,8 @@ func (wgt *Widget) IsMouseDown() (down bool, onWidget bool) {
 }
 
 func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
+	wgt.Z = wgt.Zorder
+
 	l := wgt.Layout
 	l.Update()
 
@@ -109,7 +114,7 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 		} else {
 			wt, ht, _ = wgt.font.GetRenderSize("`j*}")
 		}
-		l.SetMinSize(wt, ht)
+		l.SetMinSize(l.AddOffsets(wt, ht))
 	}
 
 	l.SetCursor(cursor)
@@ -124,56 +129,35 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 		style = wgt.StyleActive
 	}
 
-	var cmd *cmdList
-	if ActiveWidget == wgt {
-		cmd = wgt.Container.GetLastCmd(wgt.Zorder + 1)
-	} else {
-		cmd = wgt.Container.GetLastCmd(wgt.Zorder)
-	}
-
-	var crd *RenderData
 	if wgt.Constructor != nil {
-		var cstyle Style
-		crd, cstyle = wgt.Constructor(cmd)
-		if cstyle.exist {
+		if cstyle := wgt.Constructor(); cstyle.exist {
 			style = cstyle
 		}
 	}
 
-	r := l.GetBackgroundRect()
+	if wgt.Hidden {
+		return 0, 0
+	}
 
+	if ActiveWidget == wgt {
+		wgt.Z++
+	}
+
+	r := l.GetBackgroundRect()
 	switch {
 	case wgt.Image > 0:
-		wgt.renderImage(cmd, r, style, wgt.Image)
+		wgt.renderImage(r, style, wgt.Image)
 	case style.Texture != nil:
-		wgt.renderTexture(cmd, r, style, style.Texture)
+		wgt.renderTexture(r, style, style.Texture)
 	case wgt.Texture != nil:
-		wgt.renderTexture(cmd, r, style, wgt.Texture)
+		wgt.renderTexture(r, style, wgt.Texture)
 	case style.BackgroundColor[3] > 0:
-		wgt.renderBackground(cmd, r, style)
+		wgt.renderBackground(r, style)
 	}
 
-	if style.BorderWidth > 0 && style.BorderColor[3] > 0 {
-		wgt.renderBorder(cmd, r, style)
-	}
-
-	//render text
 	if wgt.font != nil && wgt.Text != "" {
-
-		var maxWidth float32 = -1
-		if l.w.value > 0 {
-			r := l.GetContentRect()
-			maxWidth = r.W
-		}
-		rt := wgt.renderText(style, wt, ht, maxWidth)
-		cmd.AddFaces(rt.ComboBuffer, rt.IndexBuffer, rt.Faces)
+		wgt.renderText(l.GetContentRect(), style, wt, ht)
 	}
-
-	if crd != nil && crd.Faces > 0 {
-		cmd.AddFaces(crd.ComboBuffer, crd.IndexBuffer, crd.Faces)
-	}
-
-	// cursor = mgl.Vec2{cursor[0] + l.W, cursor[1] - l.H}
 
 	if l.PositionFixed {
 		return 0, 0
@@ -182,9 +166,14 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 	return l.W, l.H
 }
 
-func (wgt *Widget) renderText(style Style, w, h, maxWidth float32) (rt *RenderData) {
-	//calculate size from text
+func (wgt *Widget) renderText(r Rect, style Style, w, h float32) {
 
+	var maxWidth float32 = -1
+	if wgt.Layout.w.value > 0 {
+		maxWidth = r.W
+	}
+
+	var rt *RenderData
 	switch wgt.TextAlign {
 	case TALIGN_LEFT:
 		rt = wgt.font.CreateTextAdv(wgt.Layout.GetTextPosLeft(h), style.TextColor, maxWidth, -1, -1, wgt.Text)
@@ -194,24 +183,28 @@ func (wgt *Widget) renderText(style Style, w, h, maxWidth float32) (rt *RenderDa
 		rt = wgt.font.CreateTextAdv(wgt.Layout.GetTextPosRight(w, h), style.TextColor, maxWidth, -1, -1, wgt.Text)
 	}
 
-	return
+	cmd := GetLastCmd(wgt.Z)
+	cmd.texture = wgt.font.Texture
+	cmd.AddFaces(rt.ComboBuffer, rt.IndexBuffer, rt.Faces)
 }
 
-func (wgt *Widget) renderImage(cmd *cmdList, r Rect, style Style, img graphicsprovider.Texture) {
-	cmd.image = img
-	combos, indexes, fc := cmd.DrawRectFilledDC(r, style.BackgroundColor, img, imagePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
+func (wgt *Widget) renderImage(r Rect, style Style, img graphicsprovider.Texture) {
+	cmd := GetLastCmd(wgt.Z)
+	cmd.DrawFilledRect(r, style.BackgroundColor, img, imagePixelUv)
 }
 
-func (wgt *Widget) renderTexture(cmd *cmdList, r Rect, style Style, tc *TextureChunk) {
-	// cmd.textureID = tc.pack.ID
-	combos, indexes, fc := cmd.DrawRectFilledDC(r, style.BackgroundColor, tc.pack.Texture, tc.Offset)
-	cmd.AddFaces(combos, indexes, fc)
+func (wgt *Widget) renderTexture(r Rect, style Style, tc *TextureChunk) {
+	cmd := GetLastCmd(wgt.Z)
+	cmd.DrawFilledRect(r, style.BackgroundColor, tc.Tex, tc.Offset)
 }
 
-func (wgt *Widget) renderBackground(cmd *cmdList, r Rect, style Style) {
-	combos, indexes, fc := cmd.DrawRectFilledDC(r, style.BackgroundColor, defaultTextureSampler, whitePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
+func (wgt *Widget) renderBackground(r Rect, style Style) {
+	cmd := GetLastCmd(wgt.Z)
+	cmd.DrawFilledRect(r, style.BackgroundColor, defaultTextureSampler, whitePixelUv)
+
+	if style.BorderWidth > 0 && style.BorderColor[3] > 0 {
+		wgt.renderBorder(cmd, r, style)
+	}
 }
 
 func (wgt *Widget) renderBorder(cmd *cmdList, r Rect, style Style) {
@@ -232,17 +225,10 @@ func (wgt *Widget) renderBorder(cmd *cmdList, r Rect, style Style) {
 	top.BRY = r.TLY
 	bottom.TLY = r.BRY
 
-	combos, indexes, fc := cmd.DrawRectFilledDC(left, style.BorderColor, defaultTextureSampler, whitePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
-
-	combos, indexes, fc = cmd.DrawRectFilledDC(right, style.BorderColor, defaultTextureSampler, whitePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
-
-	combos, indexes, fc = cmd.DrawRectFilledDC(top, style.BorderColor, defaultTextureSampler, whitePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
-
-	combos, indexes, fc = cmd.DrawRectFilledDC(bottom, style.BorderColor, defaultTextureSampler, whitePixelUv)
-	cmd.AddFaces(combos, indexes, fc)
+	cmd.DrawFilledRect(left, style.BorderColor, defaultTextureSampler, whitePixelUv)
+	cmd.DrawFilledRect(right, style.BorderColor, defaultTextureSampler, whitePixelUv)
+	cmd.DrawFilledRect(top, style.BorderColor, defaultTextureSampler, whitePixelUv)
+	cmd.DrawFilledRect(bottom, style.BorderColor, defaultTextureSampler, whitePixelUv)
 }
 
 func (c *Container) NewText(text string) *Widget {
@@ -288,7 +274,7 @@ func (c *Container) NewButton(text string, f Callback) *Widget {
 	return wgt
 }
 
-func (wgt *Widget) buttonConstructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (wgt *Widget) buttonConstructor() (style Style) {
 
 	if wgt.OnActive != nil {
 		click, onWidget := wgt.IsClick()
@@ -327,7 +313,7 @@ type input struct {
 	cursorTimer float32
 }
 
-func (wgt *Widget) inputConstructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (wgt *Widget) inputConstructor() (style Style) {
 
 	click, onWidget := wgt.IsClick()
 	if click {
@@ -410,14 +396,14 @@ func (wgt *Widget) inputConstructor(cmd *cmdList) (crd *RenderData, style Style)
 		r.TLX += lenText + 1
 		r.BRX = r.TLX + 2
 
-		crd = new(RenderData)
-		crd.ComboBuffer, crd.IndexBuffer, crd.Faces = cmd.DrawRectFilledDC(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
+		cmd := GetLastCmd(wgt.Zorder + 1)
+		cmd.DrawFilledRect(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
 	}
 	if inp.cursorTimer > 1 {
 		inp.cursorTimer = 0
 	}
 
-	return crd, wgt.StyleActive
+	return wgt.StyleActive
 }
 
 func (c *Container) NewCheckbox(value *bool, f Callback) *Widget {
@@ -441,7 +427,7 @@ type checkbox struct {
 	value *bool
 }
 
-func (wgt *Widget) checkboxConstructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (wgt *Widget) checkboxConstructor() (style Style) {
 
 	chk := wgt.ConstructorData.(*checkbox)
 
@@ -464,8 +450,8 @@ func (wgt *Widget) checkboxConstructor(cmd *cmdList) (crd *RenderData, style Sty
 	if wgt.State == STATE_CHECKED && wgt.StyleActive.exist {
 		r := wgt.Layout.GetContentRect()
 
-		crd = new(RenderData)
-		crd.ComboBuffer, crd.IndexBuffer, crd.Faces = cmd.DrawRectFilledDC(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
+		cmd := GetLastCmd(wgt.Zorder + 1)
+		cmd.DrawFilledRect(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
 	}
 
 	return
@@ -493,7 +479,7 @@ type progressbar struct {
 	min, max float32
 }
 
-func (wgt *Widget) progressbarConstructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (wgt *Widget) progressbarConstructor() (style Style) {
 
 	data := wgt.ConstructorData.(*progressbar)
 	if *data.value <= data.min {
@@ -512,8 +498,8 @@ func (wgt *Widget) progressbarConstructor(cmd *cmdList) (crd *RenderData, style 
 
 	r.BRX = r.TLX + r.W*percent
 
-	crd = new(RenderData)
-	crd.ComboBuffer, crd.IndexBuffer, crd.Faces = cmd.DrawRectFilledDC(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
+	cmd := GetLastCmd(wgt.Zorder + 1)
+	cmd.DrawFilledRect(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
 
 	return
 }
@@ -524,16 +510,24 @@ func (wgt *Widget) progressbarConstructor(cmd *cmdList) (crd *RenderData, style 
 
 //DADGroup compound slot and items
 type DADGroup struct {
-	ID        string
-	container *Container
+	*Container
+
+	ID string
+
+	Slots []*DADSlot
+	Items []*DADItem
 
 	activeItem *DADItem
 	activeSlot *DADSlot
 }
 
 //NewDragAndDropGroup create new drag and drop group
-func (c *Container) NewDragAndDropGroup(id string) *DADGroup {
-	return &DADGroup{ID: id, container: c}
+func NewDragAndDropGroup(id string) *DADGroup {
+	c := NewContainer(id, "", "", "100%", "100%")
+	c.Hidden = true
+	group := &DADGroup{c, id, nil, nil, nil, nil}
+
+	return group
 }
 
 //DADItem it is movable item
@@ -546,26 +540,30 @@ type DADItem struct {
 }
 
 //NewItem - create new DADItem
-func (group *DADGroup) NewItem(id, x, y, w, h, img string, value interface{}) (*DADItem, error) {
-	c := group.container
+func (group *DADGroup) NewItem(id, img string, value interface{}) *DADItem {
+	c := group.Container
 
 	wgt := &Widget{
 		ID:         id,
+		Hidden:     true,
+		Zorder:     2,
 		Container:  c,
 		Style:      DefaultDaDItemStyle,
 		StyleHover: DefaultDaDItemStyleHover,
-		Layout:     NewLayout(x, y, w, h, c.Layout),
+		Layout:     NewLayout("0", "0", "100%", "100%", nil),
 	}
 
+	wgt.Layout.Margin = Offset{1, 1, 1, 1}
+	wgt.Layout.Padding = Offset{0, 0, 0, 0}
 	wgt.Layout.PositionFixed = true
-	if w == h {
-		wgt.Layout.Square = true
-	}
+	wgt.Layout.Square = true
+	wgt.Layout.HAlign = HAlignCenter
+	wgt.Layout.VAlign = VAlignMiddle
 
 	var err error
 	wgt.Image, err = LoadImage(img)
 	if err != nil {
-		return nil, err
+		log.Println(err)
 	}
 
 	c.addWidget(wgt)
@@ -573,16 +571,23 @@ func (group *DADGroup) NewItem(id, x, y, w, h, img string, value interface{}) (*
 	item := &DADItem{wgt, nil, group, value}
 	wgt.Constructor = item.constructor
 
-	return item, nil
+	group.Items = append(group.Items, item)
+
+	return item
 }
 
-func (item *DADItem) constructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (item *DADItem) constructor() (style Style) {
 
-	if item.Slot != nil {
-		item.Layout.X = item.Slot.Layout.X
-		item.Layout.Y = item.Slot.Layout.Y
+	if item.Slot == nil {
+		item.Hidden = true
+		return
+	} else {
+		item.Hidden = false
 	}
 
+	item.Slot.placeItem(item)
+
+	//if left mouse btn is pressed then drag item by mouse
 	down, onWidget := item.IsMouseDown()
 	if down {
 		if onWidget && item.Group.activeItem == nil {
@@ -591,45 +596,31 @@ func (item *DADItem) constructor(cmd *cmdList) (crd *RenderData, style Style) {
 
 		if item.Group.activeItem == item {
 			ActiveWidget = item.Widget
+			item.Widget.Zorder++
 			//move item with mouse
 			item.Layout.X = Mouse.X
 			item.Layout.Y = Mouse.Y
 		}
 	}
 
+	//if left mouse btn is released then calculate place
 	click, _ := item.IsClick()
 	if click && item.Group.activeItem == item {
-		slot := item.Group.activeSlot
-		if slot != nil {
 
-			var place = true
+		if slot := item.Group.activeSlot; slot != nil {
+
+			var canPut = true
 			if slot.callback != nil {
-				place = slot.callback(item, slot, item.Value)
+				canPut = slot.callback(item, slot, item.Value)
 			}
 
-			if place { //place item to slot
-				item.Layout.X = slot.Layout.X
-				item.Layout.Y = slot.Layout.Y
-
-				item.Slot = slot
-				if slot.Item != nil {
-					slot.Item.Slot = nil
-				}
-				slot.Item = item
+			if canPut { //place item to slot
+				slot.PlaceItem(item)
 			}
-
-		} else {
-			//clear slot and reset item position to default
-			if item.Slot != nil {
-				item.Slot.Item = nil
-			}
-			item.Slot = nil
-			item.Layout.Update()
 		}
 
 		item.Group.activeItem = nil
 		item.Group.activeSlot = nil
-
 	}
 
 	return
@@ -648,8 +639,7 @@ type DADSlot struct {
 }
 
 //NewSlot - create new drag and drop slot and call callback on it
-func (group *DADGroup) NewSlot(id string, x, y, w, h string, f DADCallback) *DADSlot {
-	c := group.container
+func (c *Container) NewSlot(group *DADGroup, id string, x, y, w, h string, f DADCallback) *DADSlot {
 
 	wgt := &Widget{
 		ID:          id,
@@ -660,7 +650,11 @@ func (group *DADGroup) NewSlot(id string, x, y, w, h string, f DADCallback) *DAD
 		Layout:      NewLayout(x, y, w, h, c.Layout),
 	}
 
-	wgt.Layout.PositionFixed = true
+	if x != "" && y != "" {
+		wgt.Layout.PositionFixed = true
+	}
+
+	wgt.Layout.Padding = Offset{1, 1, 1, 1}
 	if w == h {
 		wgt.Layout.Square = true
 	}
@@ -668,14 +662,17 @@ func (group *DADGroup) NewSlot(id string, x, y, w, h string, f DADCallback) *DAD
 	c.addWidget(wgt)
 
 	slot := &DADSlot{wgt, nil, group, f}
+	group.Slots = append(group.Slots, slot)
+
 	wgt.Constructor = slot.constructor
 
 	return slot
 }
 
-func (slot *DADSlot) constructor(cmd *cmdList) (crd *RenderData, style Style) {
+func (slot *DADSlot) constructor() (style Style) {
 
 	if item := slot.Group.activeItem; item != nil {
+
 		style = slot.StyleHover
 
 		if slot.Layout.ContainsPoint(Mouse.X, Mouse.Y) {
@@ -687,4 +684,36 @@ func (slot *DADSlot) constructor(cmd *cmdList) (crd *RenderData, style Style) {
 	}
 
 	return
+}
+
+func (slot *DADSlot) PlaceItem(item *DADItem) {
+	var prevSlot = item.Slot
+	var prevItem = slot.Item
+
+	if prevSlot != nil && prevItem != nil {
+		if prevSlot == slot && prevItem == item {
+			return
+		}
+	}
+
+	//clear previous positions
+	if item.Slot != nil {
+		item.Slot.Item = nil
+	}
+	if slot.Item != nil {
+		slot.Item.Slot = nil
+	}
+
+	slot.placeItem(item)
+	if prevSlot != nil && prevItem != nil {
+		prevSlot.placeItem(item)
+	}
+	item.Layout.Update()
+}
+
+func (slot *DADSlot) placeItem(item *DADItem) {
+	slot.Item = item
+	item.Slot = slot
+	item.Layout.parent = slot.Layout
+	item.Zorder = slot.Zorder + 1
 }

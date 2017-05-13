@@ -1,44 +1,22 @@
-// Copyright 2016, Timothy Bogdala <tdb@animal-machine.com>
-// See the LICENSE file for more details.
-
 package fizzgui
-
-// BuildCallback is a type for the function that builds the widgets for the window.
-// type WindowContrsuctor func(window *Window)
 
 // Container represents a collection of widgets in the user interface.
 type Container struct {
-	// ID is the widget id string for the window for claiming focus.
-	ID string
-
-	// ShowScrollBar indicates if the scroll bar should be attached to the side
-	// of the window
-	ShowScrollBar bool
-
-	// IsScrollable indicates if the window should scroll the contents based
-	// on mouse scroll wheel input.
-	IsScrollable bool
-
-	// AutoAdjustHeight indicates if the window's height should be automatically
-	// adjusted to accommodate all of the widgets.
+	ID               string
+	Hidden           bool
 	AutoAdjustHeight bool
 
-	// cmds is the slice of cmdLists used to to render the window
-	zcmds map[uint8][]*cmdList
-
-	FontName string
-
-	Style *Style
-
+	//not yet ready
+	ShowScrollBar  bool
+	IsScrollable   bool
 	ScrollBarWidth float32
 	ScrollOffset   float32
 
-	Layout *Layout
+	FontName string
+	Style    *Style
+	Layout   *Layout
 
 	Widgets []*Widget
-
-	// wgtCursor    mgl.Vec2
-	// wgtRowHeight float32
 }
 
 //NewContainer creates new container for widgets
@@ -73,7 +51,7 @@ func (c *Container) construct() {
 	// Keys.GetKeys()
 
 	// empty out the cmd list and start a new command
-	c.zcmds = make(map[uint8][]*cmdList)
+	// c.zcmds = make(map[uint8][]*cmdList)
 
 	if c.IsScrollable && HoverContainer == c {
 		c.ScrollOffset -= Mouse.ScrollDelta //c.Owner.GetScrollWheelDelta(true)
@@ -89,11 +67,9 @@ func (c *Container) construct() {
 		cursor.add(w, h)
 	}
 
-	// if c.AutoAdjustHeight {
-	// 	c.Layout.h.minValue = cursor.Y
-	// }
-
-	c.draw(cursor.Y)
+	if !c.Hidden {
+		c.draw(cursor.Y)
+	}
 }
 
 //Cursor provide point to widgets position
@@ -140,14 +116,8 @@ func (cursor *Cursor) NextRow() {
 	cursor.rowHeight = 0
 }
 
-// draw builds the background for the window
 func (c *Container) draw(bry float32) {
-	var combos []float32
-	var indexes []uint32
-	var fc uint32
-
-	// get the first cmdList and insert the frame data into it
-	cmd := c.GetFirstCmd(0)
+	cmd := GetFirstCmd(0)
 
 	r := c.Layout.GetBackgroundRect()
 	if c.AutoAdjustHeight {
@@ -155,54 +125,8 @@ func (c *Container) draw(bry float32) {
 	}
 
 	if c.Style.Texture != nil {
-		// build the background of the window
-		combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, c.Style.Texture.pack.Texture, c.Style.Texture.Offset)
-		cmd.PrefixFaces(combos, indexes, fc)
+		cmd.DrawFilledRect(r, c.Style.BackgroundColor, c.Style.Texture.Tex, c.Style.Texture.Offset)
 	} else {
-		// build the background of the window
-		combos, indexes, fc = cmd.DrawRectFilledDC(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
-		cmd.PrefixFaces(combos, indexes, fc)
+		cmd.DrawFilledRect(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
 	}
-
 }
-
-func NewCmdList(layout *Layout) *cmdList {
-	cmdList := newCmdList()
-	cmdList.clipRect = layout.GetBackgroundRect()
-	return cmdList
-}
-
-//GetFirstCmd create new cmd and insert in to first element
-func (c *Container) GetFirstCmd(z uint8) *cmdList {
-	if _, ok := c.zcmds[z]; !ok {
-		c.zcmds[z] = []*cmdList{}
-	}
-
-	prepandCmd := NewCmdList(c.Layout)
-	c.zcmds[z] = append([]*cmdList{prepandCmd}, c.zcmds[z]...)
-
-	return c.zcmds[z][0]
-}
-
-//GetLastCmd will return the last non-custom cmdList
-func (c *Container) GetLastCmd(z uint8) *cmdList {
-	if _, ok := c.zcmds[z]; !ok {
-		c.zcmds[z] = []*cmdList{}
-	}
-
-	appendCmd := NewCmdList(c.Layout)
-	c.zcmds[z] = append(c.zcmds[z], appendCmd)
-
-	return appendCmd
-}
-
-// addNewCmd creates a new cmdList and adds it to the window's slice of cmlLists.
-// func (c *Container) addNewCmd() *cmdList {
-// 	log.Println("new cmd")
-// 	if len(c.cmds) == 0 {
-// 		return c.getFirstCmd()
-// 	}
-// 	newCmd := c.makeCmdList()
-// 	c.cmds = append(c.cmds, newCmd)
-// 	return newCmd
-// }

@@ -39,13 +39,16 @@ func main() {
 		log.Fatalln("Failed to load the font file, reason:", err)
 	}
 
-	uiPack, err := fizzgui.AddTexturePackImg("../assets/texture.png")
-	if err != nil {
-		log.Fatalln(err)
-	}
+	//frames and widgets
+	widgets()
+	inventory()
 
-	//left container
-	left := fizzgui.NewContainer("left-container", "2%", "2%", "48%", "96%")
+	//start render
+	renderLoop()
+}
+
+func widgets() {
+	left := fizzgui.NewContainer("gui", "2%", "2%", "48%", "96%")
 	left.AutoAdjustHeight = true
 
 	left.NewText("full width text").Layout.SetWidth("100%")
@@ -80,8 +83,13 @@ func main() {
 	btn.Layout.SetWidth("300px")
 	btn.Layout.SetHeight("51px")
 
+	//texture btn
+	uiPack, err := fizzgui.NewTexturePack("../assets/texture.png")
+	if err != nil {
+		log.Fatalln(err)
+	}
 	normalState := uiPack.NewChunk(550, 250, 852, 302)
-	hoverState := uiPack.NewChunk(550, 306, 852, 358)
+	hoverState := uiPack.NewChunk(550, 306, 852, 358) //306,358
 	btn.Texture = normalState
 	btn.Style = fizzgui.NewStyleTexture(normalState)
 	btn.StyleHover = fizzgui.NewStyleTexture(hoverState)
@@ -97,21 +105,6 @@ func main() {
 			progress += 0.1
 		}
 	}()
-
-	//right container
-	right := fizzgui.NewContainer("right-container", "50%", "2%", "48%", "96%")
-
-	dad := right.NewDragAndDropGroup("id")
-	dad.NewSlot("slot0", "10%", "10%", "12%", "12%", dadCallback)
-	dad.NewSlot("slot0", "30%", "10%", "12%", "12%", dadCallback)
-
-	red := "../assets/red.png"
-	green := "../assets/green.png"
-	dad.NewItem("item0", "10%", "30%", "10%", "10%", red, "red")
-	dad.NewItem("item1", "30%", "30%", "10%", "10%", green, "green")
-
-	//start render
-	renderLoop()
 }
 
 var inp0 string
@@ -121,6 +114,44 @@ var progress float32
 
 func wgtCallback(wgt *fizzgui.Widget) {
 	fmt.Println(wgt.Text, inp0, inp1, ok, progress)
+}
+
+func inventory() {
+	//right container
+	puppet := fizzgui.NewContainer("puppet", "2%", "2%", "48%", "48%")
+	puppet.Layout.HAlign = fizzgui.HAlignRight
+	puppet.Layout.SetMaxSize(300, 0)
+
+	group := fizzgui.NewDragAndDropGroup("items")
+
+	puppet.NewSlot(group, "top", "40%", "0%", "20%", "20%", dadCallback)
+	puppet.NewSlot(group, "left", "0%", "50%", "20%", "20%", dadCallback)
+	puppet.NewSlot(group, "right", "80%", "50%", "20%", "20%", dadCallback)
+
+	bag := fizzgui.NewContainer("bag", "2%", "50%", "48%", "48%")
+	bag.AutoAdjustHeight = true
+	bag.Layout.HAlign = fizzgui.HAlignRight
+	bag.Layout.SetMaxSize(300, 0)
+
+	items := []*fizzgui.DADItem{
+		group.NewItem("item0", "../assets/red.png", "red"),
+		group.NewItem("item1", "../assets/green.png", "green"),
+	}
+
+	var i int
+	for row := 0; row < 2; row++ {
+		for col := 0; col < 5; col++ {
+			id := fmt.Sprintf("slot-%d:%d", row, col)
+			slot := bag.NewSlot(group, id, "", "", "20%", "20%", dadCallback)
+			slot.StyleHover = fizzgui.Style{} //clear style on hover effect
+			if i < len(items) {
+				slot.PlaceItem(items[i])
+			}
+			i++
+		}
+		bag.NewRow()
+	}
+
 }
 
 func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val interface{}) bool {
