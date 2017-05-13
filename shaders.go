@@ -10,36 +10,33 @@ import (
 	graphics "github.com/tbogdala/fizzle/graphicsprovider"
 )
 
-var (
-	ShaderV = `#version 330
-	uniform mat4 VIEW;
+var ShaderV = `#version 330
+uniform mat4 VIEW;
 
-	in vec2 VERTEX_POSITION;
-	in vec2 VERTEX_UV;
-	in vec4 VERTEX_COLOR;
+in vec2 VERTEX_POSITION;
+in vec2 VERTEX_UV;
+in vec4 VERTEX_COLOR;
 
-	out vec2 vs_uv;
-	out vec4 vs_color;
+out vec2 uv;
+out vec4 color;
 
-	void main()
-	{
-		vs_color = VERTEX_COLOR;
-		gl_Position = VIEW * vec4(VERTEX_POSITION, 0.0, 1.0);
-		vs_uv = VERTEX_UV;
-	}`
+void main() {
+	uv = VERTEX_UV;
+	color = VERTEX_COLOR;
+	gl_Position = VIEW * vec4(VERTEX_POSITION, 0.0, 1.0);
+}`
 
-	ShaderF = `#version 330
-	uniform sampler2D TEX;
+var ShaderF = `#version 330
+uniform sampler2D TEX;
 
-	in vec2 vs_uv;
-	in vec4 vs_color;
+in vec2 uv;
+in vec4 color;
 
-	out vec4 frag_color;
-	void main()
-	{
-		frag_color = vs_color * texture(TEX, vs_uv).rgba;
-	}`
-)
+out vec4 frag_color;
+
+void main() {
+	frag_color = color * texture(TEX, uv).rgba;
+}`
 
 func compileShader(vertShader, fragShader string) (graphics.Program, error) {
 	// create the program
@@ -82,18 +79,16 @@ func compileShader(vertShader, fragShader string) (graphics.Program, error) {
 }
 
 func bindShader(view mgl.Mat4, tex graphics.Texture) {
-	const floatSize = 4
-	const uintSize = 4
 	const posOffset = 0
-	const uvOffset = floatSize * 2
-	const colorOffset = floatSize * 5
-	const VBOStride = floatSize * (2 + 2 + 1 + 4) // vert / uv / texIndex / color
+	const uvOffset = 8
+	const colorOffset = 20
+	const VBOStride = 36
 
 	gfx.UseProgram(mainShader)
 	gfx.BindVertexArray(vao)
 
 	TEX := gfx.GetUniformLocation(mainShader, "TEX")
-	gfx.ActiveTexture(tex)
+	gfx.ActiveTexture(graphics.TEXTURE0)
 	gfx.BindTexture(graphics.TEXTURE_2D, tex)
 	gfx.Uniform1i(TEX, 0)
 

@@ -8,7 +8,7 @@ import (
 	graphics "github.com/tbogdala/fizzle/graphicsprovider"
 )
 
-const defaultTextureSampler graphics.Texture = 1
+var defaultTextureSampler graphics.Texture = 1
 
 //cmdLists used to the render
 var zcmds map[uint8][]*cmdList

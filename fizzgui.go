@@ -50,11 +50,15 @@ var (
 func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	window = glfwWindow
 	gfx = graphProv
+	// defaultTextureSampler = gfx.GenTexture()
+	// defaultTextureSampler = loadRGBAToTexture(png1px, 10)
 
 	fonts = make(map[string]*Font)
 	frameTime = time.Now()
 
 	vao = gfx.GenVertexArray()
+	comboVBO = gfx.GenBuffer()
+	indexVBO = gfx.GenBuffer()
 
 	// var err error
 	// mainShader, err = compileShader(MainVertShader, MainFragShader)
@@ -67,9 +71,6 @@ func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	if err != nil {
 		return err
 	}
-
-	comboVBO = gfx.GenBuffer()
-	indexVBO = gfx.GenBuffer()
 
 	wndLayout = &Layout{}
 	updateWindowLayout()
@@ -163,31 +164,19 @@ C:
 	render()
 }
 
-// var texID map[graphics.Texture]int32
-
-// func getTexID(t graphics.Texture) int32 {
-// 	if i, ok := texID[t]; ok {
-// 		return i
-// 	} else {
-// 		i := int32(len(texID))
-// 		texID[t] = i
-// 		return i
-// 	}
-// }
-
 func render() {
 	const floatSize = 4
 	const uintSize = 4
 
-	const minZDepth = -100.0
-	const maxZDepth = 100.0
+	const minZDepth = -100
+	const maxZDepth = 100
 
-	gfx.Disable(graphics.DEPTH_TEST)
+	// gfx.Disable(graphics.DEPTH_TEST)
 	// gfx.Enable(graphics.SCISSOR_TEST)
 
 	var startIndex uint32
 	var z uint8
-	for ; z < 255; z++ {
+	for z = 0; z < 255; z++ {
 		cmds, ok := zcmds[z]
 		if !ok {
 			continue
@@ -239,7 +228,7 @@ func render() {
 			if cmd.faceCount == 0 {
 				continue
 			}
-			// gfx.Scissor(int32(cmd.clipRect.TLX), int32(cmd.clipRect.BRY), int32(cmd.clipRect.W), int32(cmd.clipRect.H))
+			// gfx.Scissor(0, 0, int32(wndLayout.W), int32(wndLayout.H))
 
 			if prevTex != cmd.texture {
 				prevTex = cmd.texture
@@ -255,5 +244,5 @@ func render() {
 	gfx.BindVertexArray(0)
 
 	// gfx.Disable(graphics.SCISSOR_TEST)
-	gfx.Enable(graphics.DEPTH_TEST)
+	// gfx.Enable(graphics.DEPTH_TEST)
 }

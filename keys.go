@@ -20,11 +20,6 @@ func initKeyboard(window *glfw.Window) {
 	Keys = new(keyboard)
 	Keys.prevKeyCallback = window.SetKeyCallback(Keys.charKeyCallback)
 	Keys.prevCharModsCallback = window.SetCharModsCallback(Keys.charModsCallback)
-
-	// glfw.CharCallback
-	// window.SetCharCallback(func(w *glfw.Window, r rune) {
-	// 	log.Println(r)
-	// })
 }
 
 func (kbrd *keyboard) DisableListening() {

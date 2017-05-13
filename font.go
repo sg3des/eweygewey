@@ -183,7 +183,7 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	f.TextureSize = fontTexSize
 	f.GlyphWidth = glyphWidth
 	f.GlyphHeight = glyphHeight
-	f.Texture = f.loadRGBAToTexture(fontImg.Pix, int32(fontImg.Rect.Max.X))
+	f.Texture = loadRGBAToTexture(fontImg.Pix, int32(fontImg.Rect.Max.X))
 
 	return
 }
@@ -469,12 +469,12 @@ func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, cha
 }
 
 // loadRGBAToTexture takes a byte slice and throws it into an OpenGL texture.
-func (f *Font) loadRGBAToTexture(rgba []byte, imageSize int32) graphics.Texture {
-	return f.loadRGBAToTextureExt(rgba, imageSize, graphics.LINEAR, graphics.LINEAR, graphics.CLAMP_TO_EDGE, graphics.CLAMP_TO_EDGE)
+func loadRGBAToTexture(rgba []byte, imageSize int32) graphics.Texture {
+	return loadRGBAToTextureExt(rgba, imageSize, graphics.LINEAR, graphics.LINEAR, graphics.CLAMP_TO_EDGE, graphics.CLAMP_TO_EDGE)
 }
 
 // loadRGBAToTextureExt takes a byte slice and throws it into an OpenGL texture.
-func (f *Font) loadRGBAToTextureExt(rgba []byte, imageSize, magFilter, minFilter, wrapS, wrapT int32) graphics.Texture {
+func loadRGBAToTextureExt(rgba []byte, imageSize, magFilter, minFilter, wrapS, wrapT int32) graphics.Texture {
 	tex := gfx.GenTexture()
 	gfx.ActiveTexture(graphics.TEXTURE0)
 	gfx.BindTexture(graphics.TEXTURE_2D, tex)
