@@ -129,6 +129,10 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 		style = wgt.StyleActive
 	}
 
+	if ActiveWidget == wgt {
+		wgt.Z++
+	}
+
 	if wgt.Constructor != nil {
 		if cstyle := wgt.Constructor(); cstyle.exist {
 			style = cstyle
@@ -137,10 +141,6 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 
 	if wgt.Hidden {
 		return 0, 0
-	}
-
-	if ActiveWidget == wgt {
-		wgt.Z++
 	}
 
 	r := l.GetBackgroundRect()
@@ -396,7 +396,7 @@ func (wgt *Widget) inputConstructor() (style Style) {
 		r.TLX += lenText + 1
 		r.BRX = r.TLX + 2
 
-		cmd := GetLastCmd(wgt.Zorder + 1)
+		cmd := GetLastCmd(wgt.Z + 1)
 		cmd.DrawFilledRect(r, wgt.StyleActive.TextColor, defaultTextureSampler, whitePixelUv)
 	}
 	if inp.cursorTimer > 1 {
