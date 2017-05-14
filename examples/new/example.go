@@ -38,13 +38,13 @@ func main() {
 	}
 
 	//load a default font
-	_, err := fizzgui.NewFont("Default", "../assets/Roboto-Bold.ttf", 18, fizzgui.FontGlyphs)
+	_, err := fizzgui.NewFont("Default", "../assets/Roboto-Bold.ttf", 17, fizzgui.FontGlyphs)
 	if err != nil {
 		log.Fatalln("Failed to load the font file, reason:", err)
 	}
 
 	//load a custom font
-	DiabloFont, err = fizzgui.NewFont("Diablo", "../assets/Diablo.ttf", 20, fizzgui.FontGlyphs)
+	DiabloFont, err = fizzgui.NewFont("Diablo", "../assets/Diablo.ttf", 22, fizzgui.FontGlyphs)
 	if err != nil {
 		log.Fatalln("Failed to load the font file, reason:", err)
 	}

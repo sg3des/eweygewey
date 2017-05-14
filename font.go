@@ -112,13 +112,13 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	// width and height are getting +2 here since the glyph will be buffered by a
 	// pixel in the texture
 	glyphDimensions := glyphBounds.Max.Sub(glyphBounds.Min)
-	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) * 0.9
-	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y) * 0.9
-	glyphCeilWidth := int(math.Ceil(float64(glyphWidth)))
+	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 2
+	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y)
+	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 3
 	glyphCeilHeight := int(math.Ceil(float64(glyphHeight)))
 
 	// create the buffer image used to draw the glyphs
-	glyphRect := image.Rect(0, 0, glyphCeilWidth, glyphCeilHeight)
+	glyphRect := image.Rect(1, 1, glyphCeilWidth, glyphCeilHeight)
 	glyphImg := image.NewRGBA(glyphRect)
 
 	// calculate the area needed for the font texture
@@ -142,7 +142,7 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	c := ft.NewContext()
 	c.SetDPI(70)
 	c.SetFont(ttfData)
-	c.SetFontSize(float64(scaleInt) * 0.95)
+	c.SetFontSize(float64(scaleInt))
 	c.SetClip(glyphImg.Bounds())
 	c.SetDst(glyphImg)
 	c.SetSrc(image.White)
