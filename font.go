@@ -114,7 +114,8 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	glyphDimensions := glyphBounds.Max.Sub(glyphBounds.Min)
 	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 2
 	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y)
-	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 3
+	glyphHeight *= 1.1
+	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 4
 	glyphCeilHeight := int(math.Ceil(float64(glyphHeight)))
 
 	// create the buffer image used to draw the glyphs
@@ -122,14 +123,16 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	glyphImg := image.NewRGBA(glyphRect)
 
 	// calculate the area needed for the font texture
-	var fontTexSize = 2
+	var fontTexSize = 512
 	minAreaNeeded := (glyphCeilWidth) * (glyphCeilHeight) * len(glyphs)
 	for (fontTexSize * fontTexSize) < minAreaNeeded {
-		fontTexSize *= 2
+		fontTexSize = fontTexSize * 2
 		if fontTexSize > 2048 {
-			return f, fmt.Errorf("Font texture was going to exceed 2048x2048 and that's currently not supported.")
+			return f, fmt.Errorf("Font texture was going to exceed 2048x2048 (%d) and that's currently not supported.", fontTexSize)
 		}
 	}
+
+	// log.Println(fontTexSize)
 
 	// create the font image
 	fontImgRect := image.Rect(0, 0, fontTexSize, fontTexSize)

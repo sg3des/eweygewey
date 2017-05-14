@@ -713,7 +713,7 @@ func (slot *DADSlot) PlaceItem(item *DADItem) {
 
 	slot.placeItem(item)
 	if prevSlot != nil && prevItem != nil {
-		prevSlot.placeItem(item)
+		prevSlot.placeItem(prevItem)
 	}
 	item.Layout.Update()
 }
