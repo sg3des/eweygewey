@@ -13,7 +13,7 @@ type Container struct {
 	ScrollOffset   float32
 
 	FontName string
-	Style    *Style
+	Style    Style
 	Layout   *Layout
 
 	Widgets []*Widget
@@ -124,9 +124,14 @@ func (c *Container) draw(bry float32) {
 		r.BRY = bry - c.Layout.Padding.B
 	}
 
-	if c.Style.Texture != nil {
-		cmd.DrawFilledRect(r, c.Style.BackgroundColor, c.Style.Texture.Tex, c.Style.Texture.Offset)
+	if tex := c.Style.Texture; tex != nil {
+		cmd.DrawFilledRect(r, c.Style.BackgroundColor, tex.Tex, tex.Offset)
 	} else {
 		cmd.DrawFilledRect(r, c.Style.BackgroundColor, defaultTextureSampler, whitePixelUv)
+
+		if c.Style.BorderWidth > 0 && c.Style.BorderColor[3] > 0 {
+			renderBorder(cmd, r, c.Style)
+		}
 	}
+
 }

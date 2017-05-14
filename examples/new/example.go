@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 
 	"github.com/tbogdala/fizzle"
 	"github.com/tbogdala/fizzle/graphicsprovider"
@@ -18,6 +19,8 @@ import (
 var (
 	window *glfw.Window
 	gfx    graphicsprovider.GraphicsProvider
+
+	uiPack *fizzgui.TexturePack
 )
 
 func init() {
@@ -37,6 +40,12 @@ func main() {
 	_, err := fizzgui.NewFont("Default", "../assets/Roboto-Bold.ttf", 18, fizzgui.FontGlyphs)
 	if err != nil {
 		log.Fatalln("Failed to load the font file, reason:", err)
+	}
+
+	//texture btn
+	uiPack, err = fizzgui.NewTexturePack("../assets/texture.png")
+	if err != nil {
+		log.Fatalln(err)
 	}
 
 	//frames and widgets
@@ -83,16 +92,12 @@ func widgets() {
 	btn.Layout.SetWidth("300px")
 	btn.Layout.SetHeight("51px")
 
-	//texture btn
-	uiPack, err := fizzgui.NewTexturePack("../assets/texture.png")
-	if err != nil {
-		log.Fatalln(err)
-	}
+	bgColor := mgl32.Vec4{1, 1, 1, 1}
 	normalState := uiPack.NewChunk(550, 250, 852, 302)
 	hoverState := uiPack.NewChunk(550, 306, 852, 358) //306,358
 	btn.Texture = normalState
-	btn.Style = fizzgui.NewStyleTexture(normalState)
-	btn.StyleHover = fizzgui.NewStyleTexture(hoverState)
+	btn.Style = fizzgui.NewStyleTexture(normalState, bgColor)
+	btn.StyleHover = fizzgui.NewStyleTexture(hoverState, bgColor)
 
 	//progressbar
 	left.NewProgressBar(&progress, 0, 100, func(btn *fizzgui.Widget) {
@@ -124,9 +129,15 @@ func inventory() {
 
 	group := fizzgui.NewDragAndDropGroup("items")
 
-	puppet.NewSlot(group, "top", "40%", "0%", "20%", "20%", dadCallback)
-	puppet.NewSlot(group, "left", "0%", "50%", "20%", "20%", dadCallback)
-	puppet.NewSlot(group, "right", "80%", "50%", "20%", "20%", dadCallback)
+	n := mgl32.Vec4{}
+	normal := fizzgui.NewStyle(n, mgl32.Vec4{0.9, 0.9, 0.9, 1}, n, 0)
+	hover := fizzgui.NewStyle(n, mgl32.Vec4{0.7, 0.9, 0.6, 1}, n, 0)
+	active := fizzgui.NewStyle(n, mgl32.Vec4{0.7, 1, 0.7, 1}, n, 0)
+	slotTex := uiPack.NewChunk(822, 610, 884, 672)
+
+	puppet.NewSlot(group, "top", "40%", "0%", "20%", "20%", dadCallback).SetStyles(normal, hover, active, slotTex)
+	puppet.NewSlot(group, "left", "0%", "50%", "20%", "20%", dadCallback).SetStyles(normal, hover, active, slotTex)
+	puppet.NewSlot(group, "right", "80%", "50%", "20%", "20%", dadCallback).SetStyles(normal, hover, active, slotTex)
 
 	bag := fizzgui.NewContainer("bag", "2%", "50%", "48%", "48%")
 	bag.AutoAdjustHeight = true
@@ -143,7 +154,7 @@ func inventory() {
 		for col := 0; col < 5; col++ {
 			id := fmt.Sprintf("slot-%d:%d", row, col)
 			slot := bag.NewSlot(group, id, "", "", "20%", "20%", dadCallback)
-			slot.StyleHover = fizzgui.Style{} //clear style on hover effect
+			slot.SetStyles(normal, fizzgui.Style{}, active, slotTex)
 			if i < len(items) {
 				slot.PlaceItem(items[i])
 			}

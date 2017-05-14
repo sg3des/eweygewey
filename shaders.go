@@ -78,7 +78,7 @@ func compileShader(vertShader, fragShader string) (graphics.Program, error) {
 	return prog, nil
 }
 
-func bindShader(view mgl.Mat4, tex graphics.Texture) {
+func bindShader(view mgl.Mat4) {
 	const posOffset = 0
 	const uvOffset = 8
 	const colorOffset = 20
@@ -89,7 +89,7 @@ func bindShader(view mgl.Mat4, tex graphics.Texture) {
 
 	TEX := gfx.GetUniformLocation(mainShader, "TEX")
 	gfx.ActiveTexture(graphics.TEXTURE0)
-	gfx.BindTexture(graphics.TEXTURE_2D, tex)
+	// gfx.BindTexture(graphics.TEXTURE_2D, tex)
 	gfx.Uniform1i(TEX, 0)
 
 	// bind the uniforms and attributes

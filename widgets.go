@@ -57,6 +57,21 @@ type Widget struct {
 	Constructor     WidgetConstructor
 }
 
+func (wgt *Widget) SetStyles(normal, hover, active Style, tex *TextureChunk) {
+	// if normal.exist {
+	wgt.Style = normal
+	// }
+	// if hover.exist {
+	wgt.StyleHover = hover
+	// }
+	// if active.exist {
+	wgt.StyleActive = active
+	// }
+	// if tex != nil {
+	wgt.Texture = tex
+	// }
+}
+
 func (wgt *Widget) IsHover() bool {
 	if HoverWidget == wgt {
 		return true
@@ -147,11 +162,11 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 	switch {
 	case wgt.Image > 0:
 		wgt.renderImage(r, style, wgt.Image)
-	case style.Texture != nil:
+	case style.exist && style.Texture != nil:
 		wgt.renderTexture(r, style, style.Texture)
-	case wgt.Texture != nil:
+	case style.exist && wgt.Texture != nil:
 		wgt.renderTexture(r, style, wgt.Texture)
-	case style.BackgroundColor[3] > 0:
+	case style.exist && style.BackgroundColor[3] > 0:
 		wgt.renderBackground(r, style)
 	}
 
@@ -203,11 +218,11 @@ func (wgt *Widget) renderBackground(r Rect, style Style) {
 	cmd.DrawFilledRect(r, style.BackgroundColor, defaultTextureSampler, whitePixelUv)
 
 	if style.BorderWidth > 0 && style.BorderColor[3] > 0 {
-		wgt.renderBorder(cmd, r, style)
+		renderBorder(cmd, r, style)
 	}
 }
 
-func (wgt *Widget) renderBorder(cmd *cmdList, r Rect, style Style) {
+func renderBorder(cmd *cmdList, r Rect, style Style) {
 	borderRect := r
 
 	borderRect.TLX -= style.BorderWidth

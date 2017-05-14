@@ -18,7 +18,6 @@ var (
 	gfx    graphics.GraphicsProvider
 
 	mainShader graphics.Program
-	// imageShader graphics.Program
 
 	comboBuffer []float32
 	indexBuffer []uint32
@@ -50,8 +49,6 @@ var (
 func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	window = glfwWindow
 	gfx = graphProv
-	// defaultTextureSampler = gfx.GenTexture()
-	// defaultTextureSampler = loadRGBAToTexture(png1px, 10)
 
 	fonts = make(map[string]*Font)
 	frameTime = time.Now()
@@ -59,12 +56,6 @@ func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	vao = gfx.GenVertexArray()
 	comboVBO = gfx.GenBuffer()
 	indexVBO = gfx.GenBuffer()
-
-	// var err error
-	// mainShader, err = compileShader(MainVertShader, MainFragShader)
-	// if err != nil {
-	// 	return err
-	// }
 
 	var err error
 	mainShader, err = compileShader(ShaderV, ShaderF)
@@ -76,6 +67,8 @@ func Init(glfwWindow *glfw.Window, graphProv graphics.GraphicsProvider) error {
 	updateWindowLayout()
 	initMouse(window)
 	initKeyboard(window)
+
+	initDefaultStyles()
 
 	return nil
 }
@@ -216,7 +209,9 @@ func render() {
 
 	// texID = make(map[graphics.Texture]int32)
 
-	var prevTex graphics.Texture
+	bindShader(view)
+
+	// var prevTex graphics.Texture
 	var indexOffset int
 	for z = 0; z < 255; z++ {
 		cmds, ok := zcmds[z]
@@ -230,10 +225,12 @@ func render() {
 			}
 			// gfx.Scissor(0, 0, int32(wndLayout.W), int32(wndLayout.H))
 
-			if prevTex != cmd.texture {
-				prevTex = cmd.texture
-				bindShader(view, cmd.texture)
-			}
+			// TEX := gfx.GetUniformLocation(mainShader, "TEX")
+			gfx.BindTexture(graphics.TEXTURE_2D, cmd.texture)
+			// if prevTex != cmd.texture {
+			// 	prevTex = cmd.texture
+			// 	bindShader(view, cmd.texture)
+			// }
 
 			gfx.Viewport(0, 0, int32(wndLayout.W), int32(wndLayout.H))
 			gfx.DrawElements(graphics.TRIANGLES, int32(cmd.faceCount*3), graphics.UNSIGNED_INT, gfx.PtrOffset(indexOffset*uintSize))

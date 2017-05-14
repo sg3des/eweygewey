@@ -15,104 +15,83 @@ type Style struct {
 	TextColor       mgl32.Vec4
 	BackgroundColor mgl32.Vec4
 
-	BorderWidth float32
 	BorderColor mgl32.Vec4
+	BorderWidth float32
 
 	Texture *TextureChunk
 }
 
-func NewStyle(textColor, bgColor mgl32.Vec4) Style {
+func NewStyle(textColor, bgColor, borderColor mgl32.Vec4, borderWidth float32) Style {
 	return Style{
 		exist:           true,
 		TextColor:       textColor,
 		BackgroundColor: bgColor,
+		BorderColor:     borderColor,
+		BorderWidth:     borderWidth,
 	}
 }
 
-func NewStyleTexture(tc *TextureChunk) Style {
+func NewStyleTexture(tc *TextureChunk, bgColor mgl32.Vec4) Style {
 	return Style{
 		exist:           true,
 		TextColor:       TextColor,
-		BackgroundColor: mgl32.Vec4{1, 1, 1, 1},
+		BackgroundColor: bgColor,
 		Texture:         tc,
 	}
 }
 
-//CONTAINER STYLE
-var DefaultContainerStyle = &Style{
-	BackgroundColor: ContainerBGColor,
+//Default colors
+var (
+	BGColorContainer = mgl32.Vec4{0.15, 0.15, 0.15, 0.75}
+
+	BGColor         = mgl32.Vec4{0.3, 0.3, 0.3, 1}
+	BGColorHover    = mgl32.Vec4{0.4, 0.4, 0.4, 1}
+	BGColorSelected = mgl32.Vec4{0.5, 0.5, 0.5, 1}
+
+	BGColorBtn      = mgl32.Vec4{0.18, 0.18, 0.18, 1}
+	BGColorBtnHover = mgl32.Vec4{0.28, 0.28, 0.28, 1}
+
+	BGColorHighlight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
+
+	TextColor         = mgl32.Vec4{0.8, 0.8, 0.8, 1}
+	TextColorSelected = mgl32.Vec4{0.9, 0.9, 0.9, 1}
+	TextColorHiglight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
+
+	BorderColor         = mgl32.Vec4{0.15, 0.15, 0.15, 1}
+	BorderColorHiglight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
+
+	BGColorImage      = mgl32.Vec4{0.9, 0.9, 0.9, 1}
+	BGColorImageHover = mgl32.Vec4{1, 1, 1, 1}
+)
+
+//Default styles
+var (
+	DefaultContainerStyle Style
+	DefaultTextStyle      Style
+
+	DefaultBtnStyle       Style
+	DefaultBtnStyleHover  Style
+	DefaultBtnStyleActive Style
+
+	DefaultInputStyle       Style
+	DefaultInputStyleActive Style
+
+	DefaultDaDItemStyle      Style
+	DefaultDaDItemStyleHover Style
+)
+
+func initDefaultStyles() {
+	n := mgl32.Vec4{}
+	DefaultContainerStyle = NewStyle(n, BGColorContainer, n, 0)
+	DefaultTextStyle = NewStyle(TextColor, n, n, 0)
+
+	DefaultBtnStyle = NewStyle(TextColor, BGColorBtn, BorderColor, 2)
+	DefaultBtnStyleHover = NewStyle(TextColorSelected, BGColorBtnHover, BorderColor, 2)
+	DefaultBtnStyleActive = NewStyle(TextColorSelected, BGColorHighlight, BorderColor, 2)
+
+	DefaultInputStyle = NewStyle(TextColor, BGColor, n, 0)
+	DefaultInputStyleActive = NewStyle(TextColorSelected, BGColorHover, BorderColorHiglight, 2)
+
+	DefaultDaDItemStyle = NewStyle(n, BGColorImage, n, 0)
+	DefaultDaDItemStyleHover = NewStyle(n, BGColorImageHover, n, 0)
 }
-
-//TEXT STYLE
-var DefaultTextStyle = Style{
-	exist:     true,
-	TextColor: TextColor,
-}
-
-//BUTTON STYLE
-var DefaultBtnStyle = Style{
-	exist:           true,
-	TextColor:       TextColor,
-	BackgroundColor: BGColorDark,
-	BorderColor:     BorderColor,
-	BorderWidth:     2,
-}
-
-var DefaultBtnStyleHover = Style{
-	exist:           true,
-	TextColor:       TextColorSelected,
-	BackgroundColor: BGColorDarkHover,
-	BorderColor:     BorderColor,
-	BorderWidth:     2,
-}
-
-var DefaultBtnStyleActive = Style{
-	exist:           true,
-	TextColor:       TextColorSelected,
-	BackgroundColor: BGColorHighlight,
-	BorderColor:     BorderColor,
-	BorderWidth:     2,
-}
-
-//INPUT STYLE
-var DefaultInputStyle = Style{
-	exist:           true,
-	TextColor:       TextColor,
-	BackgroundColor: BGColor,
-}
-
-var DefaultInputStyleActive = Style{
-	exist:           true,
-	TextColor:       TextColorSelected,
-	BackgroundColor: BGColorHover,
-	BorderWidth:     2,
-	BorderColor:     BorderColorHiglight,
-}
-
-//DRAG AND DROP STYLE
-var DefaultDaDItemStyle = Style{
-	exist:           true,
-	BackgroundColor: mgl32.Vec4{1, 1, 1, 1},
-}
-var DefaultDaDItemStyleHover = Style{
-	exist:           true,
-	BackgroundColor: mgl32.Vec4{0.8, 0.8, 1, 1},
-}
-
-var ContainerBGColor = mgl32.Vec4{0.15, 0.15, 0.15, 0.75}
-
-var BGColor = mgl32.Vec4{0.3, 0.3, 0.3, 1}
-var BGColorHover = mgl32.Vec4{0.4, 0.4, 0.4, 1}
-var BGColorSelected = mgl32.Vec4{0.5, 0.5, 0.5, 1}
-
-var BGColorDark = mgl32.Vec4{0.18, 0.18, 0.18, 1}
-var BGColorDarkHover = mgl32.Vec4{0.28, 0.28, 0.28, 1}
-
-var BGColorHighlight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
-
-var TextColor = mgl32.Vec4{0.8, 0.8, 0.8, 1}
-var TextColorSelected = mgl32.Vec4{0.9, 0.9, 0.9, 1}
-var TextColorHiglight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
-
-var BorderColor = mgl32.Vec4{0.15, 0.15, 0.15, 1}
-var BorderColorHiglight = mgl32.Vec4{0.17, 0.4, 0.63, 1}
