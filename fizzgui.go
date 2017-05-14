@@ -93,24 +93,6 @@ func DelContainer(ptr *Container) {
 	log.Println("WARNING: container not found")
 }
 
-// NewFont loads the font from a file and 'registers' it with the UI manager.
-func NewFont(name string, fontFilepath string, scaleInt int, glyphs string) (*Font, error) {
-	f, err := newFont(fontFilepath, scaleInt, glyphs)
-
-	// if we succeeded, store the font with the name specified
-	if err == nil {
-		fonts[name] = f
-	}
-
-	return f, err
-}
-
-// GetFont attempts to get the font by name from the Manager's collection
-// It returns the font on success or nil on failure.
-func GetFont(name string) *Font {
-	return fonts[name]
-}
-
 // Construct loops through all of the Windows in the Manager and creates all of the widgets and their data.
 // This function does not buffer the result to VBO or do the actual rendering -- call Draw() for that.
 func Construct() {

@@ -20,7 +20,8 @@ var (
 	window *glfw.Window
 	gfx    graphicsprovider.GraphicsProvider
 
-	uiPack *fizzgui.TexturePack
+	uiPack     *fizzgui.TexturePack
+	DiabloFont *fizzgui.Font
 )
 
 func init() {
@@ -36,8 +37,14 @@ func main() {
 		log.Fatalln("Failed initialize fizzgui, reason:", err)
 	}
 
-	// load a font
+	//load a default font
 	_, err := fizzgui.NewFont("Default", "../assets/Roboto-Bold.ttf", 18, fizzgui.FontGlyphs)
+	if err != nil {
+		log.Fatalln("Failed to load the font file, reason:", err)
+	}
+
+	//load a custom font
+	DiabloFont, err = fizzgui.NewFont("Diablo", "../assets/Diablo.ttf", 20, fizzgui.FontGlyphs)
 	if err != nil {
 		log.Fatalln("Failed to load the font file, reason:", err)
 	}
@@ -77,9 +84,11 @@ func widgets() {
 
 	left.NewButton("text width", wgtCallback)
 	left.NewRow()
-	left.NewButton("button 50%", wgtCallback).Layout.SetWidth("50%")
+	left.NewButton("Button 50%", wgtCallback).Layout.SetWidth("50%")
 	left.NewRow()
-	left.NewButton("button full width", wgtCallback).Layout.SetWidth("100%")
+	btnfw := left.NewButton("button full width", wgtCallback)
+	btnfw.Layout.SetWidth("100%")
+	btnfw.Font = DiabloFont
 
 	left.NewInput("input0", &inp0, wgtCallback)
 	left.NewInput("input1", &inp1, wgtCallback)
@@ -88,16 +97,18 @@ func widgets() {
 	left.NewText("checkbox")
 
 	left.NewRow().Layout.SetHeight("20px")
-	btn := left.NewButton("Button", wgtCallback)
-	btn.Layout.SetWidth("300px")
-	btn.Layout.SetHeight("51px")
+
+	//texture button
+	btnTex := left.NewButton("Button", wgtCallback)
+	btnTex.Layout.SetWidth("300px")
+	btnTex.Layout.SetHeight("51px")
+	btnTex.Font = DiabloFont
 
 	bgColor := mgl32.Vec4{1, 1, 1, 1}
-	normalState := uiPack.NewChunk(550, 250, 852, 302)
-	hoverState := uiPack.NewChunk(550, 306, 852, 358) //306,358
-	btn.Texture = normalState
-	btn.Style = fizzgui.NewStyleTexture(normalState, bgColor)
-	btn.StyleHover = fizzgui.NewStyleTexture(hoverState, bgColor)
+	normal := fizzgui.NewStyleTexture(uiPack.NewChunk(550, 250, 852, 302), bgColor)
+	hover := fizzgui.NewStyleTexture(uiPack.NewChunk(550, 306, 852, 358), bgColor)
+	active := fizzgui.NewStyleTexture(uiPack.NewChunk(550, 306, 852, 358), bgColor)
+	btnTex.SetStyles(normal, hover, active, nil)
 
 	//progressbar
 	left.NewProgressBar(&progress, 0, 100, func(btn *fizzgui.Widget) {

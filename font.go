@@ -57,6 +57,24 @@ type Font struct {
 	face        imgfont.Face
 }
 
+// NewFont loads the font from a file and 'registers' it with the UI manager.
+func NewFont(name string, fontFilepath string, scaleInt int, glyphs string) (*Font, error) {
+	f, err := newFont(fontFilepath, scaleInt, glyphs)
+
+	// if we succeeded, store the font with the name specified
+	if err == nil {
+		fonts[name] = f
+	}
+
+	return f, err
+}
+
+// GetFont attempts to get the font by name from the Manager's collection
+// It returns the font on success or nil on failure.
+func GetFont(name string) *Font {
+	return fonts[name]
+}
+
 // newFont takes a fontFilepath and uses the Go freetype library to parse it
 // and render the specified glyphs to a texture that is then buffered into OpenGL.
 func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error) {
@@ -94,8 +112,8 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 	// width and height are getting +2 here since the glyph will be buffered by a
 	// pixel in the texture
 	glyphDimensions := glyphBounds.Max.Sub(glyphBounds.Min)
-	glyphWidth := fixedInt26ToFloat(glyphDimensions.X)
-	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y)
+	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) * 0.9
+	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y) * 0.9
 	glyphCeilWidth := int(math.Ceil(float64(glyphWidth)))
 	glyphCeilHeight := int(math.Ceil(float64(glyphHeight)))
 
@@ -122,18 +140,17 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 
 	// create the freetype context
 	c := ft.NewContext()
-	c.SetDPI(72)
+	c.SetDPI(70)
 	c.SetFont(ttfData)
-	c.SetFontSize(float64(scaleInt))
+	c.SetFontSize(float64(scaleInt) * 0.95)
 	c.SetClip(glyphImg.Bounds())
 	c.SetDst(glyphImg)
 	c.SetSrc(image.White)
-
-	// NOTE: always disabled for now since it causes a stack overflow error
-	// c.SetHinting(imgfont.HintingNone)
+	// c.SetHinting(imgfont.HintingFull)
 
 	var fx, fy int
 	for _, ch := range glyphs {
+
 		index := ttfData.Index(ch)
 		metricH := ttfData.HMetric(scale, index)
 		metricV := ttfData.VMetric(scale, index)
@@ -172,7 +189,6 @@ func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error
 			fx = 0
 			fy++
 		}
-
 	}
 
 	// set the white point
@@ -243,8 +259,14 @@ func (f *Font) GetRenderSize(s string) (float32, float32, float32) {
 	}
 
 	h = fixedInt26ToFloat(mhMax-metrics.Descent/2) * fontScale
-	advH := fixedInt26ToFloat(mhMin-metrics.Descent) * fontScale
+	advH := fixedInt26ToFloat(mhMin+metrics.Descent/2) * fontScale
 
+	// log.Println(metrics, h, advH)
+	// log.Println(f.GlyphHeight)
+
+	// h = f.GlyphHeight
+	// advH = f.GlyphHeight
+	// advH = f.GlyphHeight * 0.5
 	// return w * fontScale, h * fontScale, advH * fontScale
 	return w, h, advH
 }
@@ -363,7 +385,7 @@ func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, cha
 	var cursorOverflowRight bool
 
 	var penX = pos[0] - 1
-	var penY = pos[1] - float32(advH)
+	var penY = pos[1] - f.GlyphHeight*fontScale + advH/4 //float32(advH)
 	var chi int
 	for _, ch := range s {
 
@@ -385,7 +407,7 @@ func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, cha
 
 		glyphH := f.GlyphHeight
 		glyphW := f.GlyphWidth
-		advHeight := chData.advanceHeight
+		// advHeight := chData.advanceHeight
 		advWidth := chData.advanceWidth
 
 		// possibly stop here if we're going to overflow the max width
@@ -405,9 +427,11 @@ func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, cha
 
 		// setup the coordinates for ther vetexes
 		x0 := penX
-		y0 := penY - (glyphH-advHeight)*fontScale
+		// y0 := penY - (glyphH-advHeight)*fontScale
+		y0 := penY
 		x1 := x0 + glyphW*fontScale
 		y1 := y0 + glyphH*fontScale
+		// y1 := y0 + dimY
 		s0 := chData.uvMinX
 		t0 := chData.uvMinY
 		s1 := chData.uvMaxX

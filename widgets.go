@@ -33,7 +33,7 @@ type Widget struct {
 
 	Text      string
 	TextAlign TALIGN
-	font      *Font
+	Font      *Font
 
 	Image   graphicsprovider.Texture
 	Texture *TextureChunk //Global widget texture
@@ -58,18 +58,10 @@ type Widget struct {
 }
 
 func (wgt *Widget) SetStyles(normal, hover, active Style, tex *TextureChunk) {
-	// if normal.exist {
 	wgt.Style = normal
-	// }
-	// if hover.exist {
 	wgt.StyleHover = hover
-	// }
-	// if active.exist {
 	wgt.StyleActive = active
-	// }
-	// if tex != nil {
 	wgt.Texture = tex
-	// }
 }
 
 func (wgt *Widget) IsHover() bool {
@@ -123,11 +115,11 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 	l.Update()
 
 	var wt, ht float32
-	if wgt.font != nil {
+	if wgt.Font != nil {
 		if wgt.Text != "" {
-			wt, ht, _ = wgt.font.GetRenderSize(wgt.Text)
+			wt, ht, _ = wgt.Font.GetRenderSize(wgt.Text)
 		} else {
-			wt, ht, _ = wgt.font.GetRenderSize("`j*}")
+			wt, ht, _ = wgt.Font.GetRenderSize("`j*}")
 		}
 		l.SetMinSize(l.AddOffsets(wt, ht))
 	}
@@ -170,7 +162,7 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 		wgt.renderBackground(r, style)
 	}
 
-	if wgt.font != nil && wgt.Text != "" {
+	if wgt.Font != nil && wgt.Text != "" {
 		wgt.renderText(l.GetContentRect(), style, wt, ht)
 	}
 
@@ -191,15 +183,15 @@ func (wgt *Widget) renderText(r Rect, style Style, w, h float32) {
 	var rt *RenderData
 	switch wgt.TextAlign {
 	case TALIGN_LEFT:
-		rt = wgt.font.CreateTextAdv(wgt.Layout.GetTextPosLeft(h), style.TextColor, maxWidth, -1, -1, wgt.Text)
+		rt = wgt.Font.CreateTextAdv(wgt.Layout.GetTextPosLeft(h), style.TextColor, maxWidth, -1, -1, wgt.Text)
 	case TALIGN_CENTER:
-		rt = wgt.font.CreateTextAdv(wgt.Layout.GetTextPosCenter(w, h), style.TextColor, maxWidth, -1, -1, wgt.Text)
+		rt = wgt.Font.CreateTextAdv(wgt.Layout.GetTextPosCenter(w, h), style.TextColor, maxWidth, -1, -1, wgt.Text)
 	case TALIGN_RIGHT:
-		rt = wgt.font.CreateTextAdv(wgt.Layout.GetTextPosRight(w, h), style.TextColor, maxWidth, -1, -1, wgt.Text)
+		rt = wgt.Font.CreateTextAdv(wgt.Layout.GetTextPosRight(w, h), style.TextColor, maxWidth, -1, -1, wgt.Text)
 	}
 
 	cmd := GetLastCmd(wgt.Z)
-	cmd.texture = wgt.font.Texture
+	cmd.texture = wgt.Font.Texture
 	cmd.AddFaces(rt.ComboBuffer, rt.IndexBuffer, rt.Faces)
 }
 
@@ -249,7 +241,7 @@ func renderBorder(cmd *cmdList, r Rect, style Style) {
 func (c *Container) NewText(text string) *Widget {
 	wgt := &Widget{
 		Text:      text,
-		font:      GetFont(c.FontName),
+		Font:      GetFont(c.FontName),
 		Style:     DefaultTextStyle,
 		Container: c,
 		Layout:    NewLayoutZero(c.Layout),
@@ -275,7 +267,7 @@ func (c *Container) NewButton(text string, f Callback) *Widget {
 	wgt := &Widget{
 		Text:        text,
 		TextAlign:   TALIGN_CENTER,
-		font:        GetFont(c.FontName),
+		Font:        GetFont(c.FontName),
 		Style:       DefaultBtnStyle,
 		StyleHover:  DefaultBtnStyleHover,
 		StyleActive: DefaultBtnStyleActive,
@@ -307,7 +299,7 @@ func (c *Container) NewInput(id string, text *string, f Callback) *Widget {
 	wgt := &Widget{
 		ID:          id,
 		Text:        *text,
-		font:        GetFont(c.FontName),
+		Font:        GetFont(c.FontName),
 		Style:       DefaultInputStyle,
 		StyleActive: DefaultInputStyleActive,
 		Container:   c,
@@ -405,7 +397,7 @@ func (wgt *Widget) inputConstructor() (style Style) {
 	if inp.cursorTimer < 0.6 {
 		//render text cursor vertical line
 
-		lenText := wgt.font.OffsetForIndex(*inp.value, inp.cursor)
+		lenText := wgt.Font.OffsetForIndex(*inp.value, inp.cursor)
 
 		r := wgt.Layout.GetContentRect()
 		r.TLX += lenText + 1

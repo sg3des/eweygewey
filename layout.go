@@ -8,6 +8,9 @@ import (
 	"github.com/go-gl/mathgl/mgl32"
 )
 
+var DefaultMargin = Offset{4, 4, 4, 4}
+var DefaultPadding = Offset{4, 4, 4, 4}
+
 type HAlign int
 type VAlign int
 
@@ -105,9 +108,6 @@ type Offset struct {
 func (o Offset) Vec4() mgl32.Vec4 {
 	return mgl32.Vec4{o.L, o.T, o.R, o.B}
 }
-
-var DefaultMargin = Offset{4, 4, 4, 4}
-var DefaultPadding = Offset{4, 4, 4, 4}
 
 //Layout is reresentation of object size position and other options
 type Layout struct {
