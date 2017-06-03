@@ -146,8 +146,7 @@ func render() {
 	const minZDepth = -100
 	const maxZDepth = 100
 
-	// gfx.Disable(graphics.DEPTH_TEST)
-	// gfx.Enable(graphics.SCISSOR_TEST)
+	// gfx.Scissor(0, 0, int32(wndLayout.W), int32(wndLayout.H))
 
 	var startIndex uint32
 	var z uint8
@@ -180,6 +179,9 @@ func render() {
 		return
 	}
 
+	gfx.Disable(graphics.DEPTH_TEST)
+	gfx.Enable(graphics.SCISSOR_TEST)
+
 	gfx.BindVertexArray(vao)
 	view := mgl.Ortho(0.5, wndLayout.W+0.5, 0.5, wndLayout.H+0.5, minZDepth, maxZDepth)
 
@@ -205,7 +207,6 @@ func render() {
 			if cmd.faceCount == 0 {
 				continue
 			}
-			// gfx.Scissor(0, 0, int32(wndLayout.W), int32(wndLayout.H))
 
 			// TEX := gfx.GetUniformLocation(mainShader, "TEX")
 			gfx.BindTexture(graphics.TEXTURE_2D, cmd.texture)
@@ -222,6 +223,6 @@ func render() {
 
 	gfx.BindVertexArray(0)
 
-	// gfx.Disable(graphics.SCISSOR_TEST)
-	// gfx.Enable(graphics.DEPTH_TEST)
+	gfx.Disable(graphics.SCISSOR_TEST)
+	gfx.Enable(graphics.DEPTH_TEST)
 }

@@ -60,6 +60,14 @@ func (c *Container) construct() {
 		}
 	}
 
+	for i := 0; i < len(c.Widgets); i++ {
+		if c.Widgets[i].destroy == true {
+			c.Widgets[i] = nil
+			c.Widgets = append(c.Widgets[:i], c.Widgets[i+1:]...)
+			i--
+		}
+	}
+
 	//cursor initialize with content point of left X and Top Y
 	cursor := c.newCursor()
 	for _, wgt := range c.Widgets {

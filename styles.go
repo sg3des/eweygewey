@@ -18,7 +18,7 @@ type Style struct {
 	BorderColor mgl32.Vec4
 	BorderWidth float32
 
-	Texture *TextureChunk
+	Texture *Texture
 }
 
 func NewStyle(textColor, bgColor, borderColor mgl32.Vec4, borderWidth float32) Style {
@@ -31,7 +31,7 @@ func NewStyle(textColor, bgColor, borderColor mgl32.Vec4, borderWidth float32) S
 	}
 }
 
-func NewStyleTexture(tc *TextureChunk, bgColor mgl32.Vec4) Style {
+func NewStyleTexture(tc *Texture, bgColor mgl32.Vec4) Style {
 	return Style{
 		exist:           true,
 		TextColor:       TextColor,

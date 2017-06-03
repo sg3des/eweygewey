@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/tbogdala/fizzle/graphicsprovider"
 )
 
 type TALIGN int
@@ -29,14 +28,14 @@ type Callback func(wgt *Widget)
 type Widget struct {
 	ID string
 
-	Hidden bool
+	Hidden  bool
+	destroy bool
 
 	Text      string
 	TextAlign TALIGN
 	Font      *Font
 
-	Image   graphicsprovider.Texture
-	Texture *TextureChunk //Global widget texture
+	Texture *Texture //Global widget texture
 
 	Style       Style
 	StyleHover  Style
@@ -57,7 +56,12 @@ type Widget struct {
 	Constructor     WidgetConstructor
 }
 
-func (wgt *Widget) SetStyles(normal, hover, active Style, tex *TextureChunk) {
+func (wgt *Widget) Destroy() {
+	wgt.Hidden = true
+	wgt.destroy = true
+}
+
+func (wgt *Widget) SetStyles(normal, hover, active Style, tex *Texture) {
 	wgt.Style = normal
 	wgt.StyleHover = hover
 	wgt.StyleActive = active
@@ -152,8 +156,6 @@ func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
 
 	r := l.GetBackgroundRect()
 	switch {
-	case wgt.Image > 0:
-		wgt.renderImage(r, style, wgt.Image)
 	case style.exist && style.Texture != nil:
 		wgt.renderTexture(r, style, style.Texture)
 	case style.exist && wgt.Texture != nil:
@@ -195,12 +197,7 @@ func (wgt *Widget) renderText(r Rect, style Style, w, h float32) {
 	cmd.AddFaces(rt.ComboBuffer, rt.IndexBuffer, rt.Faces)
 }
 
-func (wgt *Widget) renderImage(r Rect, style Style, img graphicsprovider.Texture) {
-	cmd := GetLastCmd(wgt.Z)
-	cmd.DrawFilledRect(r, style.BackgroundColor, img, imagePixelUv)
-}
-
-func (wgt *Widget) renderTexture(r Rect, style Style, tc *TextureChunk) {
+func (wgt *Widget) renderTexture(r Rect, style Style, tc *Texture) {
 	cmd := GetLastCmd(wgt.Z)
 	cmd.DrawFilledRect(r, style.BackgroundColor, tc.Tex, tc.Offset)
 }
@@ -568,7 +565,7 @@ func (group *DADGroup) NewItem(id, img string, value interface{}) *DADItem {
 	wgt.Layout.VAlign = VAlignMiddle
 
 	var err error
-	wgt.Image, err = LoadImage(img)
+	wgt.Texture, err = NewTextureImg(img)
 	if err != nil {
 		log.Println(err)
 	}

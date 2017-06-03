@@ -21,8 +21,8 @@ import (
 	"image/color"
 	"image/draw"
 	"io/ioutil"
+	"log"
 	"math"
-	"os"
 
 	mgl "github.com/go-gl/mathgl/mgl32"
 	ft "github.com/golang/freetype"
@@ -59,43 +59,47 @@ type Font struct {
 
 // NewFont loads the font from a file and 'registers' it with the UI manager.
 func NewFont(name string, fontFilepath string, scaleInt int, glyphs string) (*Font, error) {
-	f, err := newFont(fontFilepath, scaleInt, glyphs)
 
-	// if we succeeded, store the font with the name specified
-	if err == nil {
-		fonts[name] = f
+	fontBytes, err := ioutil.ReadFile(fontFilepath)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load font from path: '%s' \n%v", fontFilepath, err)
 	}
 
-	return f, err
+	f, err := newFont(fontBytes, scaleInt, glyphs)
+	if err != nil {
+		return nil, err
+	}
+	fonts[name] = f
+
+	return f, nil
+}
+
+func LoadFont(name string, fontBytes []byte, scaleInt int, glyphs string) (*Font, error) {
+	f, err := newFont(fontBytes, scaleInt, glyphs)
+	if err != nil {
+		return nil, err
+	}
+	fonts[name] = f
+	return f, nil
 }
 
 // GetFont attempts to get the font by name from the Manager's collection
 // It returns the font on success or nil on failure.
 func GetFont(name string) *Font {
-	return fonts[name]
+	f, ok := fonts[name]
+	if !ok {
+		log.Fatalf("font by name '%s' not loaded", name)
+	}
+	return f
 }
 
-// newFont takes a fontFilepath and uses the Go freetype library to parse it
-// and render the specified glyphs to a texture that is then buffered into OpenGL.
-func newFont(fontFilepath string, scaleInt int, glyphs string) (f *Font, e error) {
+// LoadFont uses the Go freetype library to parse it and render the specified glyphs to a texture that is then buffered into OpenGL.
+func newFont(fontBytes []byte, scaleInt int, glyphs string) (f *Font, e error) {
 	f = new(Font)
 	scale := fixed.I(scaleInt)
 
 	// allocate the location map
 	f.locations = make(map[rune]runeData)
-
-	// Load the font used for UI interaction
-	fontFile, err := os.Open(fontFilepath)
-	if err != nil {
-		return f, fmt.Errorf("Failed to open the font file.\n%v", err)
-	}
-	defer fontFile.Close()
-
-	// load in the font
-	fontBytes, err := ioutil.ReadAll(fontFile)
-	if err != nil {
-		return f, fmt.Errorf("Failed to load font data from stream.\n%v", err)
-	}
 
 	// parse the truetype font data
 	ttfData, err := ft.ParseFont(fontBytes)

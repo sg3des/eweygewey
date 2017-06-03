@@ -40,12 +40,12 @@ func NewTexturePack(img string) (*TexturePack, error) {
 	return tp, nil
 }
 
-type TextureChunk struct {
+type Texture struct {
 	Tex    graphicsprovider.Texture
 	Offset mgl32.Vec4
 }
 
-func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *TextureChunk {
+func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *Texture {
 	if x0 > x1 {
 		x1, x0 = x0, x1
 	}
@@ -59,13 +59,17 @@ func (tp *TexturePack) NewChunk(x0, y0, x1, y1 float32) *TextureChunk {
 	x1 = x1 / tp.Width
 	y1 = 1 - y1/tp.Height
 
-	tc := &TextureChunk{
+	tc := &Texture{
 		Tex:    tp.Tex,
 		Offset: mgl32.Vec4{x0, y0, x1, y1},
 	}
 	return tc
 }
 
-func LoadImage(img string) (graphicsprovider.Texture, error) {
-	return fizzle.LoadImageToTexture(img)
+func NewTextureImg(img string) (*Texture, error) {
+	tex, err := fizzle.LoadImageToTexture(img)
+	if err != nil {
+		return nil, err
+	}
+	return &Texture{tex, imagePixelUv}, nil
 }
