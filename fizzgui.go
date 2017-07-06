@@ -113,6 +113,9 @@ func Construct() {
 
 	HoverContainer = nil
 	for _, c := range containers {
+		if c.Hidden {
+			continue
+		}
 		if c.Layout.ContainsPoint(Mouse.X, Mouse.Y) {
 			HoverContainer = c
 			break
@@ -120,18 +123,26 @@ func Construct() {
 	}
 
 	HoverWidget = nil
-C:
+
 	for _, c := range containers {
+		if c.Hidden {
+			continue
+		}
 		for _, wgt := range c.Widgets {
 			if wgt.Layout.ContainsPoint(Mouse.X, Mouse.Y) {
-				HoverWidget = wgt
-				break C
+
+				if HoverWidget == nil {
+					HoverWidget = wgt
+				} else if wgt.Z > HoverWidget.Z {
+					HoverWidget = wgt
+				}
+
 			}
 		}
 	}
 
 	for _, c := range containers {
-		if c != nil {
+		if c != nil && !c.Hidden {
 			c.construct()
 		}
 	}

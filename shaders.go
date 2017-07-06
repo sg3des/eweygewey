@@ -23,19 +23,32 @@ out vec4 color;
 void main() {
 	uv = VERTEX_UV;
 	color = VERTEX_COLOR;
-	gl_Position = VIEW * vec4(VERTEX_POSITION, 0.0, 1.0);
+	gl_Position = VIEW * vec4(VERTEX_POSITION, 0, 1);
 }`
 
 var ShaderF = `#version 330
 uniform sampler2D TEX;
-
 in vec2 uv;
 in vec4 color;
-
 out vec4 frag_color;
 
 void main() {
-	frag_color = color * texture(TEX, uv).rgba;
+	vec4 sum = vec4(0.0);
+
+	sum += texture2D(TEX, vec2(uv.x - 4.0, uv.y - 4.0)) * 0.0162162162;
+  sum += texture2D(TEX, vec2(uv.x - 3.0, uv.y - 3.0)) * 0.0540540541;
+  sum += texture2D(TEX, vec2(uv.x - 2.0, uv.y - 2.0)) * 0.1216216216;
+  sum += texture2D(TEX, vec2(uv.x - 1.0, uv.y - 1.0)) * 0.1945945946;
+
+  sum += texture2D(TEX, vec2(uv.x, uv.y)) * 0.2270270270;
+
+  sum += texture2D(TEX, vec2(uv.x + 1.0, uv.y + 1.0)) * 0.1945945946;
+  sum += texture2D(TEX, vec2(uv.x + 2.0, uv.y + 2.0)) * 0.1216216216;
+  sum += texture2D(TEX, vec2(uv.x + 3.0, uv.y + 3.0)) * 0.0540540541;
+  sum += texture2D(TEX, vec2(uv.x + 4.0, uv.y + 4.0)) * 0.0162162162;
+
+  frag_color = color * vec4(sum.rgb*1.5, texture(TEX, uv).a);
+	//frag_color = color * texture(TEX, uv);
 }`
 
 func compileShader(vertShader, fragShader string) (graphics.Program, error) {

@@ -113,7 +113,7 @@ func (wgt *Widget) IsMouseDown() (down bool, onWidget bool) {
 }
 
 func (wgt *Widget) draw(cursor *Cursor) (w, h float32) {
-	wgt.Z = wgt.Zorder
+	wgt.Z = wgt.Zorder + wgt.Container.Zorder
 
 	l := wgt.Layout
 	l.Update()

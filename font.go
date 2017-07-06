@@ -32,7 +32,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var FontGlyphs = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890., :[]{}\\|<>;\"'~`?/-+_=()*&^%$#@!абвгдеёжзийклмнопрстуфхцчшщьыъэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯ"
+var FontGlyphs = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890., :[]{}\\|<>;\"'~`?/-+_=()*&^%$#@!"
 
 // runeData stores information pulled from the freetype parsing of glyphs.
 type runeData struct {
@@ -135,8 +135,6 @@ func newFont(fontBytes []byte, scaleInt int, glyphs string) (f *Font, e error) {
 			return f, fmt.Errorf("Font texture was going to exceed 2048x2048 (%d) and that's currently not supported.", fontTexSize)
 		}
 	}
-
-	// log.Println(fontTexSize)
 
 	// create the font image
 	fontImgRect := image.Rect(0, 0, fontTexSize, fontTexSize)
@@ -501,18 +499,23 @@ func (f *Font) CreateTextAdv(pos mgl.Vec2, color mgl.Vec4, maxWidth float32, cha
 
 // loadRGBAToTexture takes a byte slice and throws it into an OpenGL texture.
 func loadRGBAToTexture(rgba []byte, imageSize int32) graphics.Texture {
-	return loadRGBAToTextureExt(rgba, imageSize, graphics.LINEAR, graphics.LINEAR, graphics.CLAMP_TO_EDGE, graphics.CLAMP_TO_EDGE)
+	return loadRGBAToTextureExt(rgba, imageSize, graphics.NEAREST, graphics.NEAREST, graphics.CLAMP_TO_EDGE, graphics.CLAMP_TO_EDGE)
 }
 
 // loadRGBAToTextureExt takes a byte slice and throws it into an OpenGL texture.
 func loadRGBAToTextureExt(rgba []byte, imageSize, magFilter, minFilter, wrapS, wrapT int32) graphics.Texture {
 	tex := gfx.GenTexture()
+
 	gfx.ActiveTexture(graphics.TEXTURE0)
 	gfx.BindTexture(graphics.TEXTURE_2D, tex)
+	// gfx.GenerateMipmap(graphics.TEXTURE_2D)
+
 	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MAG_FILTER, magFilter)
 	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_MIN_FILTER, minFilter)
+
 	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_S, wrapS)
 	gfx.TexParameteri(graphics.TEXTURE_2D, graphics.TEXTURE_WRAP_T, wrapT)
+
 	gfx.TexImage2D(graphics.TEXTURE_2D, 0, graphics.RGBA, imageSize, imageSize, 0, graphics.RGBA, graphics.UNSIGNED_BYTE, gfx.Ptr(rgba), len(rgba))
 	return tex
 }

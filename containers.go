@@ -16,6 +16,8 @@ type Container struct {
 	Style    Style
 	Layout   *Layout
 
+	Zorder uint8
+
 	Widgets []*Widget
 }
 
@@ -125,7 +127,7 @@ func (cursor *Cursor) NextRow() {
 }
 
 func (c *Container) draw(bry float32) {
-	cmd := GetFirstCmd(0)
+	cmd := GetFirstCmd(c.Zorder)
 
 	r := c.Layout.GetBackgroundRect()
 	if c.AutoAdjustHeight {
