@@ -528,7 +528,7 @@ type DADGroup struct {
 //NewDragAndDropGroup create new drag and drop group
 func NewDragAndDropGroup(id string) *DADGroup {
 	c := NewContainer(id, "", "", "100%", "100%")
-	c.Hidden = true
+	c.Style.BackgroundColor[3] = 0
 	group := &DADGroup{c, id, nil, nil, nil, nil}
 
 	return group
