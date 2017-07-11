@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/go-gl/glfw/v3.1/glfw"
+	"github.com/go-gl/glfw/v3.2/glfw"
 	mgl "github.com/go-gl/mathgl/mgl32"
 	graphics "github.com/tbogdala/fizzle/graphicsprovider"
 	"github.com/tbogdala/fizzle/renderer/forward"
