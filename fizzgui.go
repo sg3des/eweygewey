@@ -191,7 +191,7 @@ func render() {
 	}
 
 	gfx.Disable(graphics.DEPTH_TEST)
-	gfx.Enable(graphics.SCISSOR_TEST)
+	// gfx.Enable(graphics.SCISSOR_TEST)
 
 	gfx.BindVertexArray(vao)
 	view := mgl.Ortho(0.5, wndLayout.W+0.5, 0.5, wndLayout.H+0.5, minZDepth, maxZDepth)
@@ -234,6 +234,6 @@ func render() {
 
 	gfx.BindVertexArray(0)
 
-	gfx.Disable(graphics.SCISSOR_TEST)
+	// gfx.Disable(graphics.SCISSOR_TEST)
 	gfx.Enable(graphics.DEPTH_TEST)
 }
