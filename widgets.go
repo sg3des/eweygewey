@@ -54,6 +54,8 @@ type Widget struct {
 
 	ConstructorData interface{}
 	Constructor     WidgetConstructor
+
+	UserData interface{}
 }
 
 func (wgt *Widget) Destroy() {
