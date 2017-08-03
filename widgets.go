@@ -542,11 +542,10 @@ type DADItem struct {
 
 	Slot  *DADSlot
 	Group *DADGroup
-	Value interface{}
 }
 
 //NewItem - create new DADItem
-func (group *DADGroup) NewItem(id, img string, value interface{}) *DADItem {
+func (group *DADGroup) NewItem(id, img string, data interface{}) *DADItem {
 	c := group.Container
 
 	wgt := &Widget{
@@ -557,6 +556,7 @@ func (group *DADGroup) NewItem(id, img string, value interface{}) *DADItem {
 		Style:      DefaultDaDItemStyle,
 		StyleHover: DefaultDaDItemStyleHover,
 		Layout:     NewLayout("0", "0", "100%", "100%", nil),
+		UserData:   data,
 	}
 
 	wgt.Layout.Margin = Offset{1, 1, 1, 1}
@@ -574,7 +574,7 @@ func (group *DADGroup) NewItem(id, img string, value interface{}) *DADItem {
 
 	c.addWidget(wgt)
 
-	item := &DADItem{wgt, nil, group, value}
+	item := &DADItem{wgt, nil, group}
 	wgt.Constructor = item.constructor
 
 	group.Items = append(group.Items, item)
@@ -617,7 +617,7 @@ func (item *DADItem) constructor() (style Style) {
 
 			var canPut = true
 			if slot.callback != nil {
-				canPut = slot.callback(item, slot, item.Value)
+				canPut = slot.callback(item, slot, item.Slot)
 			}
 
 			if canPut { //place item to slot
@@ -633,7 +633,7 @@ func (item *DADItem) constructor() (style Style) {
 }
 
 //DADCallback call when item place to slot, in argument: item, slot and item value, boolean returned value allows place item to this slot or not
-type DADCallback func(item *DADItem, slot *DADSlot, value interface{}) bool
+type DADCallback func(item *DADItem, slot *DADSlot, prev *DADSlot) bool
 
 //DADSlot is slot for place drag and drop item
 type DADSlot struct {
