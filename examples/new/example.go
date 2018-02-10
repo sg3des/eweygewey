@@ -180,10 +180,6 @@ func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val *fizzgui.DADS
 	fmt.Println(item.ID, slot.ID, val)
 	return true
 }
-//func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val interface{}) bool {
-//	fmt.Println(item.ID, slot.ID, val)
-//	return true
-//}
 
 func renderLoop() {
 	for !window.ShouldClose() {
