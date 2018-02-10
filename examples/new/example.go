@@ -176,7 +176,7 @@ func inventory() {
 
 }
 
-func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val interface{}) bool {
+func dadCallback(item *fizzgui.DADItem, slot *fizzgui.DADSlot, val *fizzgui.DADSlot) bool {
 	fmt.Println(item.ID, slot.ID, val)
 	return true
 }
