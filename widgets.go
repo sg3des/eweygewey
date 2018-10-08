@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/go-gl/glfw/v3.2/glfw"
+	"github.com/go-gl/mathgl/mgl32"
 )
 
 type TALIGN int
@@ -256,6 +257,17 @@ func (c *Container) NewRow() *Widget {
 		Style:     DefaultTextStyle,
 		Container: c,
 		Layout:    NewLayout("", "", "100%", "", c.Layout),
+	}
+
+	c.addWidget(wgt)
+	return wgt
+}
+
+func (c *Container) NewImg(img *Texture, x, y, w, h string) *Widget {
+	wgt := &Widget{
+		Style:     NewStyleTexture(img, mgl32.Vec4{1, 1, 1, 1}),
+		Container: c,
+		Layout:    NewLayout(x, y, w, h, c.Layout),
 	}
 
 	c.addWidget(wgt)
