@@ -241,7 +241,7 @@ func (l *Layout) updateVertPosition(r Rect) {
 	case VAlignTop:
 		l.Y = r.TLY - offset
 	case VAlignMiddle:
-		l.Y = r.TLY + r.H/2 - l.H/2 - offset
+		l.Y = r.TLY - r.H/2 + l.H/2 - offset
 	case VAlignBottom:
 		// l.Y = r.TLY + r.H - l.H - offset
 		l.Y = r.TLY - r.H + l.H - offset
