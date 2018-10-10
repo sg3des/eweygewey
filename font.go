@@ -116,7 +116,7 @@ func newFont(fontBytes []byte, scaleInt int, glyphs string) (f *Font, e error) {
 	// width and height are getting +2 here since the glyph will be buffered by a
 	// pixel in the texture
 	glyphDimensions := glyphBounds.Max.Sub(glyphBounds.Min)
-	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 2
+	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 3
 	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y)
 	glyphHeight *= 1.1
 	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 4
