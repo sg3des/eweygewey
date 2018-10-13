@@ -32,7 +32,7 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var FontGlyphs = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890., :[]{}\\|<>;\"'~`?/-+_=()*&^%$#@!"
+var FontGlyphs = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890.,:[]{}\\|<>;\"'~`?/-+_=()*&^%$#@! "
 
 // runeData stores information pulled from the freetype parsing of glyphs.
 type runeData struct {
@@ -116,10 +116,10 @@ func newFont(fontBytes []byte, scaleInt int, glyphs string) (f *Font, e error) {
 	// width and height are getting +2 here since the glyph will be buffered by a
 	// pixel in the texture
 	glyphDimensions := glyphBounds.Max.Sub(glyphBounds.Min)
-	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 3
+	glyphWidth := fixedInt26ToFloat(glyphDimensions.X) + 1
 	glyphHeight := fixedInt26ToFloat(glyphDimensions.Y)
 	glyphHeight *= 1.1
-	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 4
+	glyphCeilWidth := int(math.Ceil(float64(glyphWidth))) + 1
 	glyphCeilHeight := int(math.Ceil(float64(glyphHeight)))
 
 	// create the buffer image used to draw the glyphs
